@@ -1,7 +1,4 @@
-"""Gadded — Executive Streamlit Dashboard for AI Empower Egypt 2026.
-
-Overhauled frontend interface featuring high-contrast light theme, Tailwind CSS,
-visual scenario presets, glassmorphic metric cards, and themed analytical result tabs.
+"""Gadded — Dashboard for AI Empower Egypt 2026.
 """
 
 from __future__ import annotations
@@ -42,7 +39,7 @@ TOKENS = {
     "bg_base": "#F8FAFC", "bg_surface": "#FFFFFF", "bg_muted": "#F1F5F9",
     "text_primary": "#0F172A", "text_secondary": "#475569", "text_muted": "#64748B",
     "border": "#E2E8F0", "solar": "#D97706", "solar_soft": "#FEF3C7",
-    "energy": "#1E7A52", "energy_soft": "#E3F4EA", "technical": "#1E293B",
+    "energy": "#059669", "energy_soft": "#D1FAE5", "technical": "#1E293B",
     "ai": "#6255D9", "success": "#166534", "warning": "#92400E",
     "critical": "#991B1B", "unknown": "#475569",
 }
@@ -69,36 +66,34 @@ def inject_tailwind_theme() -> None:
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
         <style>
-        /* Base typography & resets */
+        /* Global Reset & Typography */
         html, body, [class*="css"], .stApp {{
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             background-color: #F8FAFC !important;
             color: #0F172A !important;
         }}
 
-        /* Code/Mono font */
         code, pre, .font-mono {{
             font-family: 'Geist Mono', monospace !important;
         }}
 
-        /* Streamlit Main Container */
+        /* Responsive Container */
         .main .block-container {{
-            max-width: 1240px !important;
-            padding-top: 1.25rem !important;
+            max-width: 1280px !important;
+            padding-top: 1rem !important;
             padding-bottom: 3rem !important;
         }}
 
-        /* STREAMLIT FORM CONTROLS OVERRIDE (Fix dark contrast bugs) */
+        /* STREAMLIT CONTROLS OVERRIDES */
         label, div[data-testid="stMarkdownContainer"] p, .stMarkdown label, .stSlider label {{
             color: #0F172A !important;
             font-weight: 700 !important;
-            font-size: 0.875rem !important;
+            font-size: 0.9rem !important;
         }}
 
-        /* Input fields: Text, Number, Selectbox */
         div[data-baseweb="select"] > div,
         div[data-baseweb="input"] > div,
         div[data-baseweb="base-input"],
@@ -108,92 +103,147 @@ def inject_tailwind_theme() -> None:
         .stSelectbox > div > div {{
             background-color: #FFFFFF !important;
             color: #0F172A !important;
-            border: 1px solid #CBD5E1 !important;
-            border-radius: 10px !important;
-            font-size: 0.9rem !important;
+            border: 1.5px solid #CBD5E1 !important;
+            border-radius: 12px !important;
+            font-size: 0.925rem !important;
             font-weight: 600 !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
         }}
 
         div[data-baseweb="select"] span {{
             color: #0F172A !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
         }}
 
         .stNumberInput button {{
             background-color: #F1F5F9 !important;
             color: #0F172A !important;
             border: 1px solid #CBD5E1 !important;
+            border-radius: 8px !important;
         }}
 
-        /* Expander Styling */
+        /* STREAMLIT EXPANDER OVERRIDE (Fix dark summary bar & dark contrast) */
         .stExpander {{
             background-color: #FFFFFF !important;
-            border: 1px solid #E2E8F0 !important;
+            border: 1.5px solid #E2E8F0 !important;
             border-radius: 16px !important;
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05) !important;
-            margin-bottom: 1.5rem !important;
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04) !important;
+            margin-bottom: 1.25rem !important;
             overflow: hidden !important;
         }}
 
         .stExpander > details > summary {{
             background-color: #F8FAFC !important;
             color: #0F172A !important;
-            border-bottom: 1px solid #E2E8F0 !important;
+            border-bottom: 1.5px solid #E2E8F0 !important;
             font-weight: 800 !important;
             font-size: 1rem !important;
             padding: 0.85rem 1.25rem !important;
+            border-radius: 16px 16px 0 0 !important;
         }}
 
-        .stExpander > details > summary span {{
+        .stExpander > details > summary:hover {{
+            background-color: #F1F5F9 !important;
+        }}
+
+        .stExpander > details > summary p,
+        .stExpander > details > summary span,
+        .stExpander > details > summary div {{
             color: #0F172A !important;
             font-weight: 800 !important;
+            font-size: 1rem !important;
         }}
 
-        /* Card Styling */
-        .gadded-hero-card {{
-            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-            color: white;
+        /* CLEAN MINIMAL HERO BANNER WITH HIGH CONTRAST TEXT */
+        .gadded-hero-minimal {{
+            background: linear-gradient(135deg, #064E3B 0%, #0F172A 100%);
+            color: #FFFFFF;
             border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+            padding: 2rem 2.25rem;
+            box-shadow: 0 12px 28px -6px rgba(6, 78, 59, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }}
+
+        /* SECTION BANNER STYLING */
+        .gadded-section-banner {{
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            background: #FFFFFF;
+            border: 1.5px solid #E2E8F0;
+            border-left: 5px solid #059669;
+            border-radius: 14px;
+            padding: 0.85rem 1.25rem;
+            margin-top: 1.25rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }}
+
+        /* PRESET CARD STYLING */
+        .gadded-preset-card {{
+            background: #FFFFFF;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 1.2rem;
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+        .gadded-preset-card:hover {{
+            box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.08);
+            border-color: #059669;
+            transform: translateY(-2px);
+        }}
+        .gadded-preset-card.active {{
+            border-color: #059669;
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2), 0 6px 14px -2px rgba(5, 150, 105, 0.15);
         }}
 
         .gadded-glass-card {{
             background: #FFFFFF;
-            border: 1px solid #E2E8F0;
+            border: 1.5px solid #E2E8F0;
             border-radius: 16px;
             padding: 1.25rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
         }}
-
         .gadded-glass-card:hover {{
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
-            border-color: #1E7A52;
+            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.06);
+            border-color: #059669;
         }}
 
+        /* KPI METRIC CARDS */
         .gadded-kpi-card {{
             background: #FFFFFF;
             border: 1.5px solid #E2E8F0;
             border-radius: 16px;
-            padding: 1.1rem 0.75rem;
+            padding: 1.2rem 0.85rem;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             height: 100%;
-            transition: transform 0.2s ease;
+            transition: all 0.2s ease;
         }}
         .gadded-kpi-card:hover {{
             transform: translateY(-2px);
-            border-color: #1E7A52;
+            border-color: #059669;
+            box-shadow: 0 8px 16px -2px rgba(5, 150, 105, 0.12);
+        }}
+        .gadded-kpi-card .kpi-icon-bg {{
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background-color: #F1F5F9;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.45rem;
         }}
         .gadded-kpi-card .kpi-label {{
-            font-size: 0.725rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #64748B;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.25rem;
         }}
         .gadded-kpi-card .kpi-value {{
             font-size: 1.35rem;
@@ -208,61 +258,82 @@ def inject_tailwind_theme() -> None:
             align-items: center;
             gap: 0.5rem;
             border-radius: 9999px;
-            padding: 0.5rem 1.25rem;
+            padding: 0.55rem 1.25rem;
             font-weight: 800;
             font-size: 0.95rem;
             border: 1.5px solid;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }}
 
-        /* Action Buttons */
+        /* Primary Action Buttons */
         .stButton > button[kind="primary"] {{
-            background: linear-gradient(135deg, #1E7A52 0%, #15573A 100%) !important;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
             color: #FFFFFF !important;
             border: none !important;
             border-radius: 12px !important;
             font-weight: 800 !important;
             font-size: 1rem !important;
             padding: 0.75rem 1.75rem !important;
-            box-shadow: 0 4px 14px rgba(30, 122, 82, 0.35) !important;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3) !important;
             transition: all 0.2s ease-in-out !important;
         }}
         .stButton > button[kind="primary"]:hover {{
             transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(30, 122, 82, 0.45) !important;
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4) !important;
         }}
 
+        /* Preset Action Buttons */
         .stButton > button:not([kind="primary"]) {{
-            background-color: #FFFFFF !important;
-            color: #1E7A52 !important;
-            border: 1.5px solid #1E7A52 !important;
+            background-color: #059669 !important;
+            color: #FFFFFF !important;
+            border: none !important;
             border-radius: 10px !important;
             font-weight: 700 !important;
             font-size: 0.85rem !important;
-            transition: all 0.15s ease !important;
+            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2) !important;
+            transition: all 0.2s ease !important;
         }}
         .stButton > button:not([kind="primary"]):hover {{
-            background-color: #E3F4EA !important;
-            border-color: #1E7A52 !important;
+            background-color: #047857 !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+            transform: translateY(-1px) !important;
         }}
 
-        /* Streamlit Tab Customization */
+        /* DOWNLOAD REPORT BUTTON STYLING */
+        div.stDownloadButton > button {{
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+            color: #FFFFFF !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px !important;
+            font-weight: 800 !important;
+            font-size: 0.9rem !important;
+            padding: 0.7rem 1.35rem !important;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25) !important;
+            transition: all 0.2s ease !important;
+        }}
+        div.stDownloadButton > button:hover {{
+            background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35) !important;
+            transform: translateY(-1px) !important;
+        }}
+
+        /* Streamlit Tabs */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 0.5rem !important;
             background-color: #E2E8F0 !important;
-            padding: 0.5rem !important;
+            padding: 0.45rem !important;
             border-radius: 14px !important;
         }}
         .stTabs [data-baseweb="tab"] {{
             border-radius: 10px !important;
-            padding: 0.6rem 1.25rem !important;
+            padding: 0.65rem 1.35rem !important;
             font-weight: 700 !important;
             color: #475569 !important;
             background-color: transparent !important;
         }}
         .stTabs [aria-selected="true"] {{
             background-color: #FFFFFF !important;
-            color: #1E7A52 !important;
+            color: #059669 !important;
             box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
         }}
         </style>
@@ -288,14 +359,29 @@ def fmt_kwh_short(value: float) -> str:
     return _fmt_short(value, "kWh")
 
 
+def section_banner(icon: str, title: str, subtitle: str) -> None:
+    st.markdown(
+        f"""
+        <div class="gadded-section-banner">
+            <span class="text-2xl">{icon}</span>
+            <div>
+                <div class="font-extrabold text-[15px] text-slate-900 leading-snug">{title}</div>
+                <div class="text-[12px] text-slate-600 font-medium">{subtitle}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def metric_card(col, label: str, value: str, icon: str = "⚡") -> None:
     col.markdown(
         f"""
         <div class="gadded-kpi-card">
-            <div class="flex items-center justify-center gap-1 mb-1 text-slate-500">
-                <span class="text-sm">{icon}</span>
-                <span class="kpi-label">{label}</span>
+            <div class="kpi-icon-bg">
+                <span class="text-lg">{icon}</span>
             </div>
+            <div class="kpi-label">{label}</div>
             <div class="kpi-value">{value}</div>
         </div>
         """,
@@ -377,24 +463,28 @@ GOLDEN_CASE = {
 
 PRESETS = {
     "Golden Case (10th Ramadan Factory)": {
+        "icon": "🏭",
         "data": GOLDEN_CASE,
         "badge": "Likely Feasible",
         "badge_color": "bg-emerald-100 text-emerald-800 border-emerald-300",
         "desc": "Real factory in Sharqia, 3,000 m² roof, 6-day shift, self-consumption model.",
     },
     "Ownership Unknown (Fallback check)": {
+        "icon": "❓",
         "data": {**GOLDEN_CASE, "ownership": "unknown", "projectName": "Ownership-Unverified Factory Site"},
         "badge": "Insufficient Info",
         "badge_color": "bg-slate-100 text-slate-700 border-slate-300",
         "desc": "Site ownership status missing -> triggers deterministic unknown verification status.",
     },
     "Protected Area (GIS Boundary Check)": {
+        "icon": "⚠️",
         "data": {**GOLDEN_CASE, "latitude": 30.345, "longitude": 31.815, "projectName": "Protected-Area Adjacent Site"},
         "badge": "High Risk",
         "badge_color": "bg-rose-100 text-rose-800 border-rose-300",
         "desc": "Location near protected area boundary -> flags critical environmental risk.",
     },
     "Oversized Roof (NPV Optimization)": {
+        "icon": "📐",
         "data": {**GOLDEN_CASE, "roofArea": 20000.0, "projectName": "Large Industrial Park Site"},
         "badge": "Economic Optimum",
         "badge_color": "bg-amber-100 text-amber-800 border-amber-300",
@@ -513,7 +603,7 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
 # --------------------------------------------------------------------------- #
 
 st.set_page_config(
-    page_title="Gadded — AI Industrial Solar Decision Engine",
+    page_title="Gadded — AI Empower Egypt 2026",
     page_icon="☀️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -521,31 +611,33 @@ st.set_page_config(
 
 inject_tailwind_theme()
 
-# --- Top Banner / Header ---
+# --- Top Minimal Header Banner with High Contrast Text ---
 st.markdown(
     f"""
-    <div class="gadded-hero-card mb-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="gadded-hero-minimal mb-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
-                    ☀️ AI Empower Egypt 2026 • Solar Decision Engine
-                </div>
-                <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Gadded • Industrial Solar Pre-Development</h1>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Gadded — Dashboard for AI Empower Egypt 2026</h1>
+                <p class="text-emerald-300 font-extrabold text-base sm:text-lg mt-1 tracking-wide" style="font-family: 'Cairo', sans-serif;">
+                    جدد — منصة دعم قرارات الطاقة الشمسية للمصانع المصرية (تمكين مصر 2026)
+                </p>
+            </div>
+            <div class="bg-white/20 backdrop-blur px-3.5 py-1.5 rounded-xl border border-white/30 text-xs text-white font-extrabold whitespace-nowrap self-start sm:self-center">
+                ☀️ Official PoC Engine
             </div>
         </div>
     </div>
 
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 flex items-start gap-3 mb-6 shadow-sm">
-        <span class="text-lg leading-none">ℹ️</span>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 flex items-start gap-2.5 mb-5 shadow-sm">
+        <span class="text-base leading-none">ℹ️</span>
         <div><strong>Disclaimer:</strong> {DISCLAIMER}</div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# --- Scenario Preset Selector ---
-st.markdown("### 🎯 1. Select Scenario Preset or Customize Parameters")
-st.caption("Load a pre-configured scenario or customize site parameters below:")
+# --- SECTION 1: SCENARIO SELECTION ---
+section_banner("🎯", "SECTION 1 — Select Scenario Preset or Build Custom Assessment", "Choose a pre-configured Egyptian industrial scenario or customize your parameters below:")
 
 preset_cols = st.columns(4)
 selected_preset_key = st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")
@@ -553,18 +645,21 @@ selected_preset_key = st.session_state.get("active_preset", "Golden Case (10th R
 for i, (name, details) in enumerate(PRESETS.items()):
     col = preset_cols[i]
     is_active = (selected_preset_key == name)
-    border_class = "border-emerald-600 ring-2 ring-emerald-500/20 bg-white" if is_active else "border-slate-200 bg-white/90 hover:border-slate-300"
+    active_class = "active" if is_active else ""
     
     with col:
         st.markdown(
             f"""
-            <div class="border {border_class} rounded-xl p-3.5 h-full flex flex-col justify-between shadow-sm transition-all mb-2">
+            <div class="gadded-preset-card {active_class} mb-2 flex flex-col justify-between">
                 <div>
-                    <span class="inline-block px-2.5 py-0.5 text-[10px] font-extrabold rounded border mb-2 {details['badge_color']}">
-                        {details['badge']}
-                    </span>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xl">{details.get('icon', '☀️')}</span>
+                        <span class="px-2.5 py-0.5 text-[10px] font-extrabold rounded border {details['badge_color']}">
+                            {details['badge']}
+                        </span>
+                    </div>
                     <div class="font-extrabold text-xs text-slate-900 mb-1">{name}</div>
-                    <div class="text-[11px] text-slate-600 font-medium leading-relaxed">{details['desc']}</div>
+                    <div class="text-[11px] text-slate-600 font-medium leading-relaxed mb-3">{details['desc']}</div>
                 </div>
             </div>
             """,
@@ -576,41 +671,43 @@ for i, (name, details) in enumerate(PRESETS.items()):
 
 preset = PRESETS[st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")]["data"]
 
-# --- Input Wizard (Main Area Cards) ---
-st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
-st.markdown("### ⚙️ 2. Assessment Input Parameters")
+# --- SECTION 2: INPUT WIZARD ---
+section_banner("⚙️", "SECTION 2 — Configure Factory & Site Parameters", "Adjust project location, energy consumption, site constraints, and financial targets:")
 
-with st.expander("📝 Edit Assessment Configuration & Factory Profile", expanded=True):
+with st.expander("📝 View & Edit Factory Assessment Parameters", expanded=True):
     col_a, col_b = st.columns(2)
     
     with col_a:
-        st.markdown("#### 🏢 Project & Location")
-        project_name = st.text_input("Assessment Name", value=preset["projectName"])
+        st.markdown("#### 🏢 Project & Location Details")
+        project_name = st.text_input("Assessment Name", value=preset["projectName"], help="Descriptive name for this factory assessment.")
         connection_model = st.selectbox(
             "Regulatory Connection Model", ["self_consumption", "net_metering"],
             index=["self_consumption", "net_metering"].index(preset["connectionModel"]),
             help="Self-consumption (ex-Circular 3/2023) vs Net-Metering (Circular 4/2026).",
         )
         c_lat, c_lon = st.columns(2)
-        latitude = c_lat.number_input("Latitude", value=preset["latitude"], format="%.4f")
-        longitude = c_lon.number_input("Longitude", value=preset["longitude"], format="%.4f")
+        latitude = c_lat.number_input("Latitude", value=preset["latitude"], format="%.4f", help="Site latitude in Egypt.")
+        longitude = c_lon.number_input("Longitude", value=preset["longitude"], format="%.4f", help="Site longitude in Egypt.")
         
-        st.markdown("#### 🏭 Site & Ownership")
-        roof_area = st.number_input("Available Roof Area (m²)", value=preset["roofArea"], step=100.0)
+        st.markdown("#### 🏭 Site & Ownership Constraints")
+        roof_area = st.number_input("Available Roof Area (m²)", value=preset["roofArea"], step=100.0, help="Total structurally sound rooftop area available for PV installation.")
         ownership = st.selectbox(
             "Land / Roof Ownership Status", ["owned", "rented_authorized", "rented_unknown", "unknown"],
             index=["owned", "rented_authorized", "rented_unknown", "unknown"].index(preset["ownership"]),
+            help="Required under EgyptERA Circular 6/2023 for self-consumption grid clearance.",
         )
 
     with col_b:
-        st.markdown("#### ⚡ Factory Consumption Profile")
+        st.markdown("#### ⚡ Factory Energy Consumption Profile")
         sector = st.selectbox(
             "Industrial Sector", ["food_processing", "textiles"],
-            index=["food_processing", "textiles"].index(preset["sector"])
+            index=["food_processing", "textiles"].index(preset["sector"]),
+            help="Determines the baseline hourly demand shape.",
         )
         shift_pattern = st.selectbox(
             "Shift Pattern", ["day_shift", "two_shifts", "continuous"],
-            index=["day_shift", "two_shifts", "continuous"].index(preset["shiftPattern"])
+            index=["day_shift", "two_shifts", "continuous"].index(preset["shiftPattern"]),
+            help="Operating schedule of factory machinery.",
         )
         working_days = st.slider("Working Days / Week", 1, 7, preset["workingDaysPerWeek"])
         
@@ -622,13 +719,13 @@ with st.expander("📝 Edit Assessment Configuration & Factory Profile", expande
                 m_val = m_col.number_input(f"Month {idx+1}", value=float(val), step=5000.0, key=f"m_val_{idx}")
                 monthly.append(m_val)
 
-        st.markdown("#### 💰 Financial Assumptions")
+        st.markdown("#### 💰 Financial Assumptions & Targets")
         f_col1, f_col2 = st.columns(2)
         preference = f_col1.selectbox(
             "Finance Preference", ["cash", "finance", "compare"],
             index=["cash", "finance", "compare"].index(preset["preference"])
         )
-        target_payback = f_col2.number_input("Target Payback (Years)", value=preset["targetPayback"])
+        target_payback = f_col2.number_input("Target Payback (Years)", value=preset["targetPayback"], help="Maximum acceptable simple payback period in years.")
 
     st.divider()
     cta_col1, cta_col2 = st.columns([3, 1])
@@ -666,14 +763,9 @@ ai = st.session_state["ai"]
 result = run["result"]
 rec = result.technical
 
-# --------------------------------------------------------------------------- #
-# Assessment Executive Results Dashboard
-# --------------------------------------------------------------------------- #
+# --- SECTION 3: EXECUTIVE DECISION DASHBOARD ---
+section_banner("📊", "SECTION 3 — Executive Decision Dashboard & Feasibility Status", "Deterministic feasibility status, core financial metrics, and executive KPIs:")
 
-st.markdown("---")
-st.markdown("### 📊 3. Executive Decision Dashboard")
-
-# Top Header Card with Status Pill & Report Download
 hdr_col1, hdr_col2 = st.columns([3, 1])
 with hdr_col1:
     st.subheader(ai.projectName)
@@ -683,7 +775,7 @@ with hdr_col1:
 with hdr_col2:
     html_report = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
     st.download_button(
-        "📥 Download Full Report (HTML)",
+        "📥 Download Report (HTML)",
         data=html_report,
         file_name=f"Gadded_Assessment_{result.assessmentId}.html",
         mime="text/html",
@@ -691,7 +783,7 @@ with hdr_col2:
     )
 
 if result.status != "likely_feasible":
-    with st.expander("⚠️ Why this status decision?", expanded=True):
+    with st.expander("⚠️ Decision Rationale & Status Rationale Details", expanded=True):
         for reason in run["feas"].reasons:
             st.markdown(f"- **{reason}**")
 
@@ -711,9 +803,8 @@ metric_card(m_cols[5], "Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} d"
 
 st.markdown("<div class='mb-6'></div>", unsafe_allow_html=True)
 
-# --------------------------------------------------------------------------- #
-# Result Detail Tabs
-# --------------------------------------------------------------------------- #
+# --- SECTION 4: DETAILED ANALYTICAL BREAKDOWN ---
+section_banner("🔍", "SECTION 4 — Detailed Technical, Financial, GIS & Legal Breakdown", "Explore specialized analytical modules, physics simulations, and legal compliance:")
 
 tab_tech, tab_fin, tab_site, tab_reg, tab_vendor, tab_report = st.tabs(
     ["⚡ Technical & PV", "💰 Financial Risk", "🗺️ Site & GIS", "📜 Regulatory", "🏢 Vendors", "📄 Full Report"]
@@ -822,9 +913,16 @@ with tab_site:
             "unknown": ("? Unknown", "bg-slate-100 text-slate-700 border-slate-300"),
         }.get(f.severity, ("?", "bg-slate-100 text-slate-700 border-slate-300"))
         
+        border_left = {
+            "info": "border-l-4 border-l-emerald-500",
+            "warning": "border-l-4 border-l-amber-500",
+            "critical": "border-l-4 border-l-rose-500",
+            "unknown": "border-l-4 border-l-slate-400",
+        }.get(f.severity, "")
+
         st.markdown(
             f"""
-            <div class="gadded-glass-card mb-3">
+            <div class="gadded-glass-card {border_left} mb-3">
                 <div class="flex items-center justify-between mb-1">
                     <div class="font-extrabold text-slate-900">{f.title}</div>
                     <span class="px-2.5 py-0.5 rounded text-xs font-bold border {badge_style[1]}">{badge_style[0]}</span>
@@ -845,7 +943,7 @@ with tab_reg:
     for f in result.regulatoryFindings:
         st.markdown(
             f"""
-            <div class="gadded-glass-card mb-4">
+            <div class="gadded-glass-card mb-4 border-l-4 border-l-emerald-600">
                 <div class="font-extrabold text-slate-900 text-base mb-1">{f.title}</div>
                 <p class="text-xs text-slate-700 font-medium mb-2">{f.explanation}</p>
                 <div class="text-xs text-slate-500 mb-2">
