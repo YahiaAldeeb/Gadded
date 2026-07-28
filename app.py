@@ -1,11 +1,7 @@
-"""Gadded — thin Streamlit wrapper for the live pitch.
+"""Gadded — Executive Streamlit Dashboard for AI Empower Egypt 2026.
 
-This is NOT the graded PoC (that's gadded.ipynb + src/gadded/). It is an optional,
-thin demo shell over the exact same analytical modules, built for the live
-presentation only (see AGENTS.md). It follows the parts of context/ui-context.md that
-still apply to a non-web demo: the status system (icon + text + color, never color
-alone), the metric strip, the six result tabs, chart labeling rules, the persistent
-disclaimer, and the source/assumptions drawer.
+Overhauled frontend interface featuring high-contrast light theme, Tailwind CSS,
+visual scenario presets, glassmorphic metric cards, and themed analytical result tabs.
 """
 
 from __future__ import annotations
@@ -39,56 +35,235 @@ from gadded.risk import RiskInputs, run_monte_carlo
 from gadded.weather import load_cached_weather
 
 # --------------------------------------------------------------------------- #
-# Theme — tokens from context/ui-context.md
+# Design System & Tokens
 # --------------------------------------------------------------------------- #
 
 TOKENS = {
-    "bg_base": "#F6F7F2", "bg_surface": "#FFFFFF", "bg_muted": "#EEF1E8",
-    "text_primary": "#17211B", "text_secondary": "#526159", "text_muted": "#7A877F",
-    "border": "#DCE2D9", "solar": "#E7A927", "solar_soft": "#FFF4D5",
-    "energy": "#1E7A52", "energy_soft": "#E3F4EA", "technical": "#183B56",
-    "ai": "#6255D9", "success": "#237A4B", "warning": "#B76A00",
-    "critical": "#B93A3A", "unknown": "#667085",
+    "bg_base": "#F8FAFC", "bg_surface": "#FFFFFF", "bg_muted": "#F1F5F9",
+    "text_primary": "#0F172A", "text_secondary": "#475569", "text_muted": "#64748B",
+    "border": "#E2E8F0", "solar": "#D97706", "solar_soft": "#FEF3C7",
+    "energy": "#1E7A52", "energy_soft": "#E3F4EA", "technical": "#1E293B",
+    "ai": "#6255D9", "success": "#166534", "warning": "#92400E",
+    "critical": "#991B1B", "unknown": "#475569",
 }
 
 STATUS_STYLE = {
-    "likely_feasible": ("✓", "Likely feasible", TOKENS["success"], TOKENS["energy_soft"]),
-    "feasible_with_conditions": ("⚠", "Feasible with conditions", TOKENS["warning"], TOKENS["solar_soft"]),
-    "high_risk": ("✕", "High regulatory/site risk", TOKENS["critical"], "#FBE9E9"),
-    "potentially_ineligible": ("✕", "Potentially ineligible (preliminary)", TOKENS["critical"], "#FBE9E9"),
-    "insufficient_information": ("?", "Insufficient information", TOKENS["unknown"], TOKENS["bg_muted"]),
+    "likely_feasible": ("✓", "Likely Feasible", TOKENS["success"], TOKENS["energy_soft"], "border-emerald-300 text-emerald-800 bg-emerald-50"),
+    "feasible_with_conditions": ("⚠", "Feasible with Conditions", TOKENS["warning"], TOKENS["solar_soft"], "border-amber-300 text-amber-800 bg-amber-50"),
+    "high_risk": ("✕", "High Regulatory / Site Risk", TOKENS["critical"], "#FEE2E2", "border-rose-300 text-rose-800 bg-rose-50"),
+    "potentially_ineligible": ("✕", "Potentially Ineligible (Preliminary)", TOKENS["critical"], "#FEE2E2", "border-rose-300 text-rose-800 bg-rose-50"),
+    "insufficient_information": ("?", "Insufficient Information", TOKENS["unknown"], TOKENS["bg_muted"], "border-slate-300 text-slate-700 bg-slate-100"),
 }
 
 DISCLAIMER = (
-    "This is a preliminary decision-support assessment. Verify regulatory, engineering, "
-    "grid, vendor, and financing information with the responsible authorities and "
-    "qualified professionals."
+    "Preliminary decision-support assessment for industrial solar pre-development. "
+    "Verify regulatory, engineering, grid connection, and financing requirements with responsible authorities."
 )
 
 
-def inject_theme() -> None:
+def inject_tailwind_theme() -> None:
     st.markdown(
         f"""
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
         <style>
-        .stApp {{ background-color: {TOKENS['bg_base']}; color: {TOKENS['text_primary']}; }}
-        .gadded-disclaimer {{
-            background: {TOKENS['solar_soft']}; border: 1px solid {TOKENS['solar']};
-            border-radius: 12px; padding: 0.6rem 1rem; font-size: 0.85rem;
-            color: {TOKENS['text_secondary']}; margin-bottom: 1rem;
+        /* Base typography & resets */
+        html, body, [class*="css"], .stApp {{
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            background-color: #F8FAFC !important;
+            color: #0F172A !important;
         }}
-        .gadded-card {{
-            background: {TOKENS['bg_surface']}; border: 1px solid {TOKENS['border']};
-            border-radius: 16px; padding: 0.9rem 0.5rem; text-align: center;
+
+        /* Code/Mono font */
+        code, pre, .font-mono {{
+            font-family: 'Geist Mono', monospace !important;
         }}
-        .gadded-card .label {{ font-size: 0.75rem; color: {TOKENS['text_muted']}; }}
-        .gadded-card .value {{
-            font-size: 1.1rem; font-weight: 600; color: {TOKENS['text_primary']};
-            word-break: keep-all; overflow-wrap: normal; white-space: normal;
+
+        /* Streamlit Main Container */
+        .main .block-container {{
+            max-width: 1240px !important;
+            padding-top: 1.25rem !important;
+            padding-bottom: 3rem !important;
         }}
-        .gadded-status {{
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            border-radius: 999px; padding: 0.5rem 1rem; font-weight: 600;
-            border: 1px solid {TOKENS['border']};
+
+        /* STREAMLIT FORM CONTROLS OVERRIDE (Fix dark contrast bugs) */
+        label, div[data-testid="stMarkdownContainer"] p, .stMarkdown label, .stSlider label {{
+            color: #0F172A !important;
+            font-weight: 700 !important;
+            font-size: 0.875rem !important;
+        }}
+
+        /* Input fields: Text, Number, Selectbox */
+        div[data-baseweb="select"] > div,
+        div[data-baseweb="input"] > div,
+        div[data-baseweb="base-input"],
+        input, select, textarea,
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stSelectbox > div > div {{
+            background-color: #FFFFFF !important;
+            color: #0F172A !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 10px !important;
+            font-size: 0.9rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+        }}
+
+        div[data-baseweb="select"] span {{
+            color: #0F172A !important;
+            font-weight: 600 !important;
+        }}
+
+        .stNumberInput button {{
+            background-color: #F1F5F9 !important;
+            color: #0F172A !important;
+            border: 1px solid #CBD5E1 !important;
+        }}
+
+        /* Expander Styling */
+        .stExpander {{
+            background-color: #FFFFFF !important;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05) !important;
+            margin-bottom: 1.5rem !important;
+            overflow: hidden !important;
+        }}
+
+        .stExpander > details > summary {{
+            background-color: #F8FAFC !important;
+            color: #0F172A !important;
+            border-bottom: 1px solid #E2E8F0 !important;
+            font-weight: 800 !important;
+            font-size: 1rem !important;
+            padding: 0.85rem 1.25rem !important;
+        }}
+
+        .stExpander > details > summary span {{
+            color: #0F172A !important;
+            font-weight: 800 !important;
+        }}
+
+        /* Card Styling */
+        .gadded-hero-card {{
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+        }}
+
+        .gadded-glass-card {{
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease-in-out;
+        }}
+
+        .gadded-glass-card:hover {{
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+            border-color: #1E7A52;
+        }}
+
+        .gadded-kpi-card {{
+            background: #FFFFFF;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 1.1rem 0.75rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            height: 100%;
+            transition: transform 0.2s ease;
+        }}
+        .gadded-kpi-card:hover {{
+            transform: translateY(-2px);
+            border-color: #1E7A52;
+        }}
+        .gadded-kpi-card .kpi-label {{
+            font-size: 0.725rem;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }}
+        .gadded-kpi-card .kpi-value {{
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0F172A;
+            word-break: keep-all;
+        }}
+
+        /* Status Badge */
+        .gadded-status-pill {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-radius: 9999px;
+            padding: 0.5rem 1.25rem;
+            font-weight: 800;
+            font-size: 0.95rem;
+            border: 1.5px solid;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }}
+
+        /* Action Buttons */
+        .stButton > button[kind="primary"] {{
+            background: linear-gradient(135deg, #1E7A52 0%, #15573A 100%) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-weight: 800 !important;
+            font-size: 1rem !important;
+            padding: 0.75rem 1.75rem !important;
+            box-shadow: 0 4px 14px rgba(30, 122, 82, 0.35) !important;
+            transition: all 0.2s ease-in-out !important;
+        }}
+        .stButton > button[kind="primary"]:hover {{
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(30, 122, 82, 0.45) !important;
+        }}
+
+        .stButton > button:not([kind="primary"]) {{
+            background-color: #FFFFFF !important;
+            color: #1E7A52 !important;
+            border: 1.5px solid #1E7A52 !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            font-size: 0.85rem !important;
+            transition: all 0.15s ease !important;
+        }}
+        .stButton > button:not([kind="primary"]):hover {{
+            background-color: #E3F4EA !important;
+            border-color: #1E7A52 !important;
+        }}
+
+        /* Streamlit Tab Customization */
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 0.5rem !important;
+            background-color: #E2E8F0 !important;
+            padding: 0.5rem !important;
+            border-radius: 14px !important;
+        }}
+        .stTabs [data-baseweb="tab"] {{
+            border-radius: 10px !important;
+            padding: 0.6rem 1.25rem !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            background-color: transparent !important;
+        }}
+        .stTabs [aria-selected="true"] {{
+            background-color: #FFFFFF !important;
+            color: #1E7A52 !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
         }}
         </style>
         """,
@@ -97,7 +272,7 @@ def inject_theme() -> None:
 
 
 def _fmt_short(value: float, unit: str) -> str:
-    """Abbreviate a large figure so metric cards never break mid-number."""
+    """Abbreviate large numbers for metric cards."""
     if abs(value) >= 1_000_000:
         return f"{value/1_000_000:.2f}M {unit}"
     if abs(value) >= 1_000:
@@ -113,49 +288,61 @@ def fmt_kwh_short(value: float) -> str:
     return _fmt_short(value, "kWh")
 
 
-def metric_card(col, label: str, value: str) -> None:
+def metric_card(col, label: str, value: str, icon: str = "⚡") -> None:
     col.markdown(
-        f'<div class="gadded-card"><div class="label">{label}</div>'
-        f'<div class="value">{value}</div></div>',
+        f"""
+        <div class="gadded-kpi-card">
+            <div class="flex items-center justify-center gap-1 mb-1 text-slate-500">
+                <span class="text-sm">{icon}</span>
+                <span class="kpi-label">{label}</span>
+            </div>
+            <div class="kpi-value">{value}</div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
 
 def status_badge(status: str) -> None:
-    icon, label, color, bg = STATUS_STYLE.get(status, ("?", status, TOKENS["unknown"], TOKENS["bg_muted"]))
+    icon, label, color, bg, css_classes = STATUS_STYLE.get(
+        status, ("?", status, TOKENS["unknown"], TOKENS["bg_muted"], "border-slate-300 text-slate-700 bg-slate-100")
+    )
     st.markdown(
-        f'<span class="gadded-status" style="color:{color};background:{bg};">'
-        f'{icon} {label}</span>',
+        f"""
+        <div class="gadded-status-pill {css_classes}">
+            <span>{icon}</span>
+            <span>{label}</span>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
 
 # --------------------------------------------------------------------------- #
-# Cached resources (loaded once per server process)
+# Cached Resources
 # --------------------------------------------------------------------------- #
 
-
-@st.cache_resource(show_spinner="Loading assumptions...")
+@st.cache_resource(show_spinner="Loading decision parameters...")
 def get_assumptions():
     return load_assumptions(ROOT / "data" / "assumptions.json")
 
 
-@st.cache_resource(show_spinner="Loading cached weather...")
+@st.cache_resource(show_spinner="Loading solar irradiance weather dataset...")
 def get_weather():
     return load_cached_weather(ROOT / "data" / "weather_10ramadan_cached.csv")
 
 
-@st.cache_resource(show_spinner="Training load-profile ML model (KMeans + RandomForest)...")
+@st.cache_resource(show_spinner="Initializing load-profile ML models...")
 def get_load_ml_bundle():
     return train_load_ml_model(seed=42, n_per_combo=15)
 
 
-@st.cache_resource(show_spinner="Loading GIS layers...")
+@st.cache_resource(show_spinner="Loading GIS spatial layers...")
 def get_zones():
     return load_zones(ROOT / "data" / "zones.geojson")
 
 
-@st.cache_resource(show_spinner="Loading regulatory corpus and rules...")
+@st.cache_resource(show_spinner="Loading Egyptian solar regulations...")
 def get_regulatory():
     corpus = load_excerpts(ROOT / "data" / "regulations" / "excerpts.json")
     rules = load_rules(ROOT / "data" / "regulations" / "rules.json")
@@ -166,17 +353,21 @@ def get_groq_client():
     if not os.environ.get("GROQ_API_KEY"):
         return None
     from openai import OpenAI
-    return OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1",
-                  timeout=60.0, max_retries=1)
+    return OpenAI(
+        api_key=os.environ["GROQ_API_KEY"],
+        base_url="https://api.groq.com/openai/v1",
+        timeout=60.0,
+        max_retries=1,
+    )
 
 
 # --------------------------------------------------------------------------- #
-# Scenario presets — same idea as the golden cases in implementation-plan.md
+# Presets
 # --------------------------------------------------------------------------- #
 
 GOLDEN_CASE = {
-    "projectName": "10th of Ramadan Food Processing Rooftop Solar",
-    "latitude": 30.3009, "longitude": 31.7411,
+    "projectName": "10th of Ramadan Food Factory Rooftop Solar",
+    "latitude": 30.3203, "longitude": 31.7466,
     "sector": "food_processing", "shiftPattern": "day_shift", "workingDaysPerWeek": 6,
     "monthly": [145000, 140000, 150000, 160000, 175000, 185000,
                 190000, 188000, 172000, 162000, 150000, 146000],
@@ -185,18 +376,29 @@ GOLDEN_CASE = {
 }
 
 PRESETS = {
-    "Golden case (default)": GOLDEN_CASE,
-    "Ownership unknown -> insufficient information": {
-        **GOLDEN_CASE, "ownership": "unknown",
-        "projectName": "Ownership-Unverified Site",
+    "Golden Case (10th Ramadan Factory)": {
+        "data": GOLDEN_CASE,
+        "badge": "Likely Feasible",
+        "badge_color": "bg-emerald-100 text-emerald-800 border-emerald-300",
+        "desc": "Real factory in Sharqia, 3,000 m² roof, 6-day shift, self-consumption model.",
     },
-    "Site inside protected area -> high risk": {
-        **GOLDEN_CASE, "latitude": 30.345, "longitude": 31.815,
-        "projectName": "Protected-Area-Adjacent Site",
+    "Ownership Unknown (Fallback check)": {
+        "data": {**GOLDEN_CASE, "ownership": "unknown", "projectName": "Ownership-Unverified Factory Site"},
+        "badge": "Insufficient Info",
+        "badge_color": "bg-slate-100 text-slate-700 border-slate-300",
+        "desc": "Site ownership status missing -> triggers deterministic unknown verification status.",
     },
-    "Oversized roof -> optimizer picks below max": {
-        **GOLDEN_CASE, "roofArea": 20000.0,
-        "projectName": "Oversized Roof Scenario",
+    "Protected Area (GIS Boundary Check)": {
+        "data": {**GOLDEN_CASE, "latitude": 30.345, "longitude": 31.815, "projectName": "Protected-Area Adjacent Site"},
+        "badge": "High Risk",
+        "badge_color": "bg-rose-100 text-rose-800 border-rose-300",
+        "desc": "Location near protected area boundary -> flags critical environmental risk.",
+    },
+    "Oversized Roof (NPV Optimization)": {
+        "data": {**GOLDEN_CASE, "roofArea": 20000.0, "projectName": "Large Industrial Park Site"},
+        "badge": "Economic Optimum",
+        "badge_color": "bg-amber-100 text-amber-800 border-amber-300",
+        "desc": "20,000 m² roof area -> NPV optimizer picks optimal sizing below maximum physical roof limit.",
     },
 }
 
@@ -209,7 +411,7 @@ def build_assessment_input(values: dict) -> AssessmentInput:
         "connectionModel": values["connectionModel"],
         "location": {
             "latitude": values["latitude"], "longitude": values["longitude"],
-            "address": "10th of Ramadan City industrial zone, Egypt",
+            "address": "10th of Ramadan City Industrial Zone, Sharqia, Egypt",
             "governorate": "Sharqia", "industrialZone": "10th of Ramadan City",
         },
         "factory": {
@@ -224,9 +426,8 @@ def build_assessment_input(values: dict) -> AssessmentInput:
 
 
 # --------------------------------------------------------------------------- #
-# Pipeline
+# Pipeline Execution
 # --------------------------------------------------------------------------- #
-
 
 def run_pipeline(ai: AssessmentInput, run_llm: bool):
     a = get_assumptions()
@@ -247,12 +448,16 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
         capacity_kw=rec.recommendedCapacityKw, year1_pv_savings_egp=row["year1_savings_egp"],
         capex_egp=row["capex_egp"], opex_egp=rec.recommendedCapacityKw * a.number("opex_per_kw_year_egp"),
     )
-    risk = run_monte_carlo(risk_inputs, a, target_payback_years=ai.finance.targetPaybackYears,
-                            seed=int(a.number("monte_carlo_seed")), runs=int(a.number("monte_carlo_runs")))
+    risk = run_monte_carlo(
+        risk_inputs, a, target_payback_years=ai.finance.targetPaybackYears,
+        seed=int(a.number("monte_carlo_seed")), runs=int(a.number("monte_carlo_runs"))
+    )
 
     gis_findings = screen_site(ai.location.latitude, ai.location.longitude, zones)
-    reg_ctx = build_context(ai.connectionModel, ai.site.ownershipStatus,
-                             {f.code for f in gis_findings}, rec.recommendedCapacityKw)
+    reg_ctx = build_context(
+        ai.connectionModel, ai.site.ownershipStatus,
+        {f.code for f in gis_findings}, rec.recommendedCapacityKw
+    )
     reg_findings = evaluate_rules(reg_ctx, rules, corpus)
 
     reg_explanation = None
@@ -261,7 +466,7 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
     if run_llm:
         client = get_groq_client()
         if client is None:
-            reg_error = "GROQ_API_KEY not set — AI explanation and vendor search skipped."
+            reg_error = "GROQ_API_KEY not set in environment — AI legal explanation and vendor web search skipped."
         else:
             try:
                 from gadded.regulatory import explain_with_llm
@@ -279,8 +484,10 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
             except Exception as e:
                 vendor_warnings = [f"vendor discovery unavailable this run ({type(e).__name__})"]
 
-    material_warnings = [w for w in load_profile.result.warnings
-                          if "exceeds tolerance" in w or "empty archetype shape" in w]
+    material_warnings = [
+        w for w in load_profile.result.warnings
+        if "exceeds tolerance" in w or "empty archetype shape" in w
+    ]
     feas = resolve_feasibility(reg_findings, gis_findings, ai.site.ownershipStatus, material_warnings)
 
     versions = ResultVersions(
@@ -302,63 +509,137 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
 
 
 # --------------------------------------------------------------------------- #
-# UI
+# Main Application Shell
 # --------------------------------------------------------------------------- #
 
-st.set_page_config(page_title="Gadded", page_icon="☀", layout="wide")
-inject_theme()
+st.set_page_config(
+    page_title="Gadded — AI Industrial Solar Decision Engine",
+    page_icon="☀️",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
-st.markdown(f'<div class="gadded-disclaimer">{DISCLAIMER}</div>', unsafe_allow_html=True)
-st.title("Gadded")
-st.caption("AI-driven solar pre-development decision support for Egyptian factories")
+inject_tailwind_theme()
 
-with st.sidebar:
-    st.header("New assessment")
-    preset_name = st.selectbox("Scenario preset", list(PRESETS.keys()))
-    preset = PRESETS[preset_name]
+# --- Top Banner / Header ---
+st.markdown(
+    f"""
+    <div class="gadded-hero-card mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
+                    ☀️ AI Empower Egypt 2026 • Solar Decision Engine
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Gadded • Industrial Solar Pre-Development</h1>
+            </div>
+        </div>
+    </div>
 
-    st.subheader("1. Project")
-    project_name = st.text_input("Assessment name", preset["projectName"])
-    connection_model = st.selectbox(
-        "Connection model", ["self_consumption", "net_metering"],
-        index=["self_consumption", "net_metering"].index(preset["connectionModel"]),
-    )
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 flex items-start gap-3 mb-6 shadow-sm">
+        <span class="text-lg leading-none">ℹ️</span>
+        <div><strong>Disclaimer:</strong> {DISCLAIMER}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    st.subheader("2. Location")
-    latitude = st.number_input("Latitude", value=preset["latitude"], format="%.4f")
-    longitude = st.number_input("Longitude", value=preset["longitude"], format="%.4f")
-    st.caption("Weather is reused from the cached golden-site dataset for demo reliability.")
+# --- Scenario Preset Selector ---
+st.markdown("### 🎯 1. Select Scenario Preset or Customize Parameters")
+st.caption("Load a pre-configured scenario or customize site parameters below:")
 
-    st.subheader("3. Factory consumption")
-    sector = st.selectbox("Sector", ["food_processing", "textiles"],
-                           index=["food_processing", "textiles"].index(preset["sector"]))
-    shift_pattern = st.selectbox("Shift pattern", ["day_shift", "two_shifts", "continuous"],
-                                 index=["day_shift", "two_shifts", "continuous"].index(preset["shiftPattern"]))
-    working_days = st.slider("Working days per week", 1, 7, preset["workingDaysPerWeek"])
-    with st.expander("12 monthly consumption values (kWh)"):
-        monthly = [
-            st.number_input(f"Month {i+1}", value=float(v), key=f"m{i}", step=1000.0)
-            for i, v in enumerate(preset["monthly"])
-        ]
+preset_cols = st.columns(4)
+selected_preset_key = st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")
 
-    st.subheader("4. Site and ownership")
-    roof_area = st.number_input("Available roof area (m2)", value=preset["roofArea"], step=100.0)
-    ownership = st.selectbox(
-        "Ownership status", ["owned", "rented_authorized", "rented_unknown", "unknown"],
-        index=["owned", "rented_authorized", "rented_unknown", "unknown"].index(preset["ownership"]),
-    )
+for i, (name, details) in enumerate(PRESETS.items()):
+    col = preset_cols[i]
+    is_active = (selected_preset_key == name)
+    border_class = "border-emerald-600 ring-2 ring-emerald-500/20 bg-white" if is_active else "border-slate-200 bg-white/90 hover:border-slate-300"
+    
+    with col:
+        st.markdown(
+            f"""
+            <div class="border {border_class} rounded-xl p-3.5 h-full flex flex-col justify-between shadow-sm transition-all mb-2">
+                <div>
+                    <span class="inline-block px-2.5 py-0.5 text-[10px] font-extrabold rounded border mb-2 {details['badge_color']}">
+                        {details['badge']}
+                    </span>
+                    <div class="font-extrabold text-xs text-slate-900 mb-1">{name}</div>
+                    <div class="text-[11px] text-slate-600 font-medium leading-relaxed">{details['desc']}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Load Preset", key=f"btn_preset_{i}", use_container_width=True):
+            st.session_state["active_preset"] = name
+            st.rerun()
 
-    st.subheader("5. Connection and finance")
-    preference = st.selectbox("Finance preference", ["cash", "finance", "compare"],
-                               index=["cash", "finance", "compare"].index(preset["preference"]))
-    target_payback = st.number_input("Target payback (years)", value=preset["targetPayback"])
+preset = PRESETS[st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")]["data"]
 
-    run_llm = st.checkbox(
-        "Run live AI stages (regulatory explanation + vendor search)", value=True,
-        help="Calls the Groq API. Fails soft on rate limits/outages — technical and "
-             "financial results are never affected.",
-    )
-    run_clicked = st.button("Run assessment", type="primary", use_container_width=True)
+# --- Input Wizard (Main Area Cards) ---
+st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
+st.markdown("### ⚙️ 2. Assessment Input Parameters")
+
+with st.expander("📝 Edit Assessment Configuration & Factory Profile", expanded=True):
+    col_a, col_b = st.columns(2)
+    
+    with col_a:
+        st.markdown("#### 🏢 Project & Location")
+        project_name = st.text_input("Assessment Name", value=preset["projectName"])
+        connection_model = st.selectbox(
+            "Regulatory Connection Model", ["self_consumption", "net_metering"],
+            index=["self_consumption", "net_metering"].index(preset["connectionModel"]),
+            help="Self-consumption (ex-Circular 3/2023) vs Net-Metering (Circular 4/2026).",
+        )
+        c_lat, c_lon = st.columns(2)
+        latitude = c_lat.number_input("Latitude", value=preset["latitude"], format="%.4f")
+        longitude = c_lon.number_input("Longitude", value=preset["longitude"], format="%.4f")
+        
+        st.markdown("#### 🏭 Site & Ownership")
+        roof_area = st.number_input("Available Roof Area (m²)", value=preset["roofArea"], step=100.0)
+        ownership = st.selectbox(
+            "Land / Roof Ownership Status", ["owned", "rented_authorized", "rented_unknown", "unknown"],
+            index=["owned", "rented_authorized", "rented_unknown", "unknown"].index(preset["ownership"]),
+        )
+
+    with col_b:
+        st.markdown("#### ⚡ Factory Consumption Profile")
+        sector = st.selectbox(
+            "Industrial Sector", ["food_processing", "textiles"],
+            index=["food_processing", "textiles"].index(preset["sector"])
+        )
+        shift_pattern = st.selectbox(
+            "Shift Pattern", ["day_shift", "two_shifts", "continuous"],
+            index=["day_shift", "two_shifts", "continuous"].index(preset["shiftPattern"])
+        )
+        working_days = st.slider("Working Days / Week", 1, 7, preset["workingDaysPerWeek"])
+        
+        with st.expander("📊 View / Edit 12 Monthly Consumption Values (kWh)", expanded=False):
+            monthly_cols = st.columns(3)
+            monthly = []
+            for idx, val in enumerate(preset["monthly"]):
+                m_col = monthly_cols[idx % 3]
+                m_val = m_col.number_input(f"Month {idx+1}", value=float(val), step=5000.0, key=f"m_val_{idx}")
+                monthly.append(m_val)
+
+        st.markdown("#### 💰 Financial Assumptions")
+        f_col1, f_col2 = st.columns(2)
+        preference = f_col1.selectbox(
+            "Finance Preference", ["cash", "finance", "compare"],
+            index=["cash", "finance", "compare"].index(preset["preference"])
+        )
+        target_payback = f_col2.number_input("Target Payback (Years)", value=preset["targetPayback"])
+
+    st.divider()
+    cta_col1, cta_col2 = st.columns([3, 1])
+    with cta_col1:
+        run_llm = st.checkbox(
+            "Enable Groq AI Stages (Grounded Legal Explanation + Live Vendor Web Search)",
+            value=True,
+            help="Calls Groq LLM endpoint. Fails soft if API key is missing or rate limited.",
+        )
+    with cta_col2:
+        run_clicked = st.button("🚀 Run Assessment", type="primary", use_container_width=True)
 
 form_values = {
     "projectName": project_name, "latitude": latitude, "longitude": longitude,
@@ -367,201 +648,260 @@ form_values = {
     "connectionModel": connection_model, "preference": preference, "targetPayback": target_payback,
 }
 
-if run_clicked:
+# Automatically run golden assessment on initial load
+if "run" not in st.session_state or run_clicked:
     try:
         ai = build_assessment_input(form_values)
     except ValidationError as e:
-        st.error("Invalid input — please fix the fields below and re-run.")
+        st.error("Validation Error — please review input parameters.")
         for err in e.errors():
             st.write(f"- **{'.'.join(str(p) for p in err['loc'])}**: {err['msg']}")
-        st.session_state.pop("run", None)
     else:
-        with st.spinner("Running the full assessment pipeline..."):
+        with st.spinner("Simulating solar physics, ML load profiles, financial risk, and regulatory rules..."):
             st.session_state["run"] = run_pipeline(ai, run_llm)
             st.session_state["ai"] = ai
-
-if "run" not in st.session_state:
-    st.info(
-        "Configure an assessment in the sidebar (or pick a scenario preset) and click "
-        "**Run assessment** to see the technical, financial, site, regulatory, and "
-        "vendor result."
-    )
-    st.stop()
 
 run = st.session_state["run"]
 ai = st.session_state["ai"]
 result = run["result"]
 rec = result.technical
 
-# --- summary header ---------------------------------------------------------
-col1, col2 = st.columns([3, 1])
-with col1:
+# --------------------------------------------------------------------------- #
+# Assessment Executive Results Dashboard
+# --------------------------------------------------------------------------- #
+
+st.markdown("---")
+st.markdown("### 📊 3. Executive Decision Dashboard")
+
+# Top Header Card with Status Pill & Report Download
+hdr_col1, hdr_col2 = st.columns([3, 1])
+with hdr_col1:
     st.subheader(ai.projectName)
-    st.caption(f"{ai.location.address} | analysis date {datetime.now(timezone.utc).date().isoformat()}")
+    st.caption(f"📍 {ai.location.address} | Coordinates: ({ai.location.latitude:.4f}, {ai.location.longitude:.4f})")
     status_badge(result.status)
-with col2:
-    html = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
-    st.download_button("Download report (HTML)", data=html, file_name="gadded_report.html",
-                        mime="text/html", use_container_width=True)
 
-if result.status not in ("likely_feasible",):
-    with st.expander("Why this status?", expanded=True):
-        for r in run["feas"].reasons:
-            st.write("-", r)
+with hdr_col2:
+    html_report = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
+    st.download_button(
+        "📥 Download Full Report (HTML)",
+        data=html_report,
+        file_name=f"Gadded_Assessment_{result.assessmentId}.html",
+        mime="text/html",
+        use_container_width=True,
+    )
 
-# --- metric strip ------------------------------------------------------------
-m = st.columns(6)
-metric_card(m[0], "Recommended capacity", f"{rec.recommendedCapacityKw:.0f} kW")
-metric_card(m[1], "Annual generation", fmt_kwh_short(rec.annualGenerationKwh))
-metric_card(m[2], "Self-consumption", f"{rec.selfConsumptionRatio*100:.1f}%")
-year1_savings = next((s.yearOneSavingsEgp for s in result.financial if s.scenario == "cash"), None)
-metric_card(m[3], "Annual savings (cash)", fmt_egp_short(year1_savings) if year1_savings else "n/a")
-metric_card(m[4], "Median payback", f"{result.risk.paybackP50Years:.1f} yr" if result.risk.paybackP50Years else "n/a")
-reg_duration = next((f.estimatedDurationDays for f in result.regulatoryFindings if f.estimatedDurationDays), None)
-metric_card(m[5], "Approval-time range",
-            f"{reg_duration.minimum}-{reg_duration.maximum} d" if reg_duration else "n/a")
+if result.status != "likely_feasible":
+    with st.expander("⚠️ Why this status decision?", expanded=True):
+        for reason in run["feas"].reasons:
+            st.markdown(f"- **{reason}**")
 
-with st.expander("Sources, assumptions, and versions"):
-    st.write(f"**Assumption set:** `{result.versions.assumptionSet}`")
-    st.write(f"**Load model:** `{result.versions.loadModel}`")
-    st.write(f"**PV model:** `{result.versions.pvModel}`")
-    st.write(f"**Weather source:** {run['weather'].source_name}, retrieved {run['weather'].retrieved_at}")
-    st.caption("DEMO/SYNTHETIC-classified assumptions are placeholders and must be replaced "
-               "with sourced figures before any real-world use.")
+# Metric Strip (6 Executive KPIs)
+st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
+m_cols = st.columns(6)
+metric_card(m_cols[0], "Rec. Capacity", f"{rec.recommendedCapacityKw:.0f} kW", "⚡")
+metric_card(m_cols[1], "Annual Gen.", fmt_kwh_short(rec.annualGenerationKwh), "☀️")
+metric_card(m_cols[2], "Self-Consumpt.", f"{rec.selfConsumptionRatio*100:.1f}%", "🔄")
+
+cash_savings = next((s.yearOneSavingsEgp for s in result.financial if s.scenario == "cash"), None)
+metric_card(m_cols[3], "Year 1 Savings", fmt_egp_short(cash_savings) if cash_savings else "n/a", "💵")
+metric_card(m_cols[4], "Median Payback", f"{result.risk.paybackP50Years:.1f} yr" if result.risk.paybackP50Years else "n/a", "📈")
+
+reg_dur = next((f.estimatedDurationDays for f in result.regulatoryFindings if f.estimatedDurationDays), None)
+metric_card(m_cols[5], "Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} d" if reg_dur else "📋", "⏱️")
+
+st.markdown("<div class='mb-6'></div>", unsafe_allow_html=True)
+
+# --------------------------------------------------------------------------- #
+# Result Detail Tabs
+# --------------------------------------------------------------------------- #
 
 tab_tech, tab_fin, tab_site, tab_reg, tab_vendor, tab_report = st.tabs(
-    ["Technical", "Financial", "Site", "Regulatory", "Vendors", "Report"]
+    ["⚡ Technical & PV", "💰 Financial Risk", "🗺️ Site & GIS", "📜 Regulatory", "🏢 Vendors", "📄 Full Report"]
 )
 
-# --- Technical ---------------------------------------------------------------
+# --- Tab 1: Technical & PV Physics ---
 with tab_tech:
+    st.markdown("#### Technical Sizing & Energy Yield Simulation")
     best = run["opt"].best_match
-    fig, ax = plt.subplots(figsize=(9, 3))
-    sample = best.hourly.loc["2023-06-05":"2023-06-11"]
-    ax.plot(sample.index, sample["load_kw"], label="Factory load (kW)")
-    ax.plot(sample.index, sample["pv_kw"], label=f"PV output ({rec.recommendedCapacityKw:.0f} kW)")
-    ax.set_xlabel("Time"); ax.set_ylabel("kW"); ax.legend()
-    st.pyplot(fig)
-    st.caption(f"Sample week: load vs. PV at the recommended {rec.recommendedCapacityKw:.0f} kW capacity.")
 
-    fig2, ax2 = plt.subplots(figsize=(9, 3))
-    table = run["opt"].table
-    ax2.plot(table["capacity_kw"], table["npv_egp"], marker="o", markersize=3)
-    ax2.axvline(rec.recommendedCapacityKw, color=TOKENS["energy"], linestyle="--", label="Recommended")
-    ax2.axvline(rec.physicalMaximumKw, color=TOKENS["critical"], linestyle=":", label="Roof physical max")
-    ax2.set_xlabel("Candidate capacity (kW)"); ax2.set_ylabel("Project NPV (EGP)"); ax2.legend()
-    st.pyplot(fig2)
-    st.caption(f"NPV across {len(rec.evaluatedCapacitiesKw)} candidate sizes. Binding constraint: "
-               f"{', '.join(rec.bindingConstraints)}.")
+    col_t1, col_t2 = st.columns([3, 2])
+    with col_t1:
+        fig, ax = plt.subplots(figsize=(8, 3.2))
+        sample = best.hourly.loc["2023-06-05":"2023-06-11"]
+        ax.plot(sample.index, sample["load_kw"], label="Factory Load (kW)", color=TOKENS["technical"], linewidth=1.5)
+        ax.plot(sample.index, sample["pv_kw"], label=f"PV Output ({rec.recommendedCapacityKw:.0f} kW)", color=TOKENS["solar"], linewidth=1.5)
+        ax.set_facecolor("#F8FAFC")
+        fig.patch.set_facecolor("#FFFFFF")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.set_ylabel("kW")
+        ax.legend(frameon=True, facecolor="#FFFFFF")
+        st.pyplot(fig)
+        st.caption("Sample 7-day hourly load vs solar PV production curve.")
 
-    st.write(f"Self-sufficiency: **{rec.selfSufficiencyRatio*100:.1f}%** | "
-             f"Imported: **{rec.annualImportedKwh:,.0f} kWh** | Exported: **{rec.annualExportedKwh:,.0f} kWh** | "
-             f"Roof area used: **{rec.roofAreaRequiredM2:,.0f} m2** of {ai.site.availableRoofAreaM2:,.0f} m2 available")
+    with col_t2:
+        fig2, ax2 = plt.subplots(figsize=(6, 3.2))
+        table = run["opt"].table
+        ax2.plot(table["capacity_kw"], table["npv_egp"] / 1e6, marker="o", color=TOKENS["energy"], linewidth=1.5)
+        ax2.axvline(rec.recommendedCapacityKw, color=TOKENS["solar"], linestyle="--", label="Recommended")
+        ax2.axvline(rec.physicalMaximumKw, color=TOKENS["critical"], linestyle=":", label="Physical Max")
+        ax2.set_facecolor("#F8FAFC")
+        fig2.patch.set_facecolor("#FFFFFF")
+        ax2.grid(True, linestyle="--", alpha=0.5)
+        ax2.set_xlabel("Candidate Capacity (kW)")
+        ax2.set_ylabel("Project NPV (Million EGP)")
+        ax2.legend(frameon=True, facecolor="#FFFFFF")
+        st.pyplot(fig2)
+        st.caption(f"NPV Grid Search curve across candidate system capacities.")
 
-    if run["load_profile"].result.confidence == "low":
-        st.warning("Load-profile ML confidence was low this run; fell back to the deterministic "
-                   "archetype baseline (see Warnings on the Report tab).")
+    st.info(
+        f"**Self-Sufficiency Ratio:** {rec.selfSufficiencyRatio*100:.1f}% | "
+        f"**Annual Imported Grid Energy:** {rec.annualImportedKwh:,.0f} kWh | "
+        f"**Roof Utilization:** {rec.roofAreaRequiredM2:,.0f} m² used of {ai.site.availableRoofAreaM2:,.0f} m² available "
+        f"({rec.roofAreaRequiredM2/ai.site.availableRoofAreaM2*100:.1f}%)."
+    )
 
-# --- Financial ----------------------------------------------------------------
+# --- Tab 2: Financial Risk & Monte Carlo ---
 with tab_fin:
-    for s in result.financial:
-        with st.container(border=True):
-            st.write(f"**{s.scenario.title()}**")
-            c = st.columns(4)
-            c[0].metric("Capex", f"{s.capexEgp:,.0f} EGP")
-            c[1].metric("NPV", f"{s.npvEgp:,.0f} EGP")
-            c[2].metric("IRR", f"{s.irrPct:.1f}%" if s.irrPct is not None else "n/a")
-            c[3].metric("Simple payback", f"{s.simplePaybackYears:.1f} yr" if s.simplePaybackYears else "not recovered")
-            st.caption("Nominal cash flows; includes O&M, tariff escalation, degradation. "
-                       "Excludes tax, general inflation adjustment, replacement, residual value.")
+    st.markdown("#### Financial Analysis & Monte Carlo Risk Simulation")
+    
+    fin_cols = st.columns(len(result.financial))
+    for idx, s in enumerate(result.financial):
+        with fin_cols[idx]:
+            st.markdown(
+                f"""
+                <div class="gadded-glass-card">
+                    <div class="font-extrabold text-slate-900 text-lg mb-2">{s.scenario.title()} Scenario</div>
+                    <div class="text-xs text-slate-500 font-semibold mb-1">Capital Expenditure</div>
+                    <div class="text-xl font-extrabold text-emerald-700 mb-3">{s.capexEgp:,.0f} EGP</div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>NPV:</span> <span class="font-bold text-slate-900">{s.npvEgp:,.0f} EGP</span></div>
+                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>IRR:</span> <span class="font-bold text-slate-900">{f'{s.irrPct:.1f}%' if s.irrPct else 'n/a'}</span></div>
+                        <div class="flex justify-between"><span>Simple Payback:</span> <span class="font-bold text-slate-900">{f'{s.simplePaybackYears:.1f} yrs' if s.simplePaybackYears else 'n/a'}</span></div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-    fig3, ax3 = plt.subplots(figsize=(9, 3))
-    ax3.bar(["P10", "P50 (median)", "P90"],
-            [result.risk.npvP10Egp, result.risk.npvP50Egp, result.risk.npvP90Egp],
-            color=[TOKENS["critical"], TOKENS["solar"], TOKENS["success"]])
-    ax3.set_ylabel("NPV (EGP)")
-    st.pyplot(fig3)
-    st.caption(f"Monte Carlo NPV range ({result.risk.runCount} runs, seed {result.risk.seed}). "
-               f"Payback P10/P50/P90: {result.risk.paybackP10Years:.1f} / "
-               f"{result.risk.paybackP50Years:.1f} / {result.risk.paybackP90Years:.1f} years.")
-    if result.risk.probabilityTargetPaybackPct is not None:
-        st.write(f"Probability of meeting the {ai.finance.targetPaybackYears}-year target payback: "
-                 f"**{result.risk.probabilityTargetPaybackPct:.1f}%**")
+    st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
+    f_col1, f_col2 = st.columns(2)
+    
+    with f_col1:
+        fig3, ax3 = plt.subplots(figsize=(6, 3))
+        ax3.bar(
+            ["P10 (Conservative)", "P50 (Median)", "P90 (Optimistic)"],
+            [result.risk.npvP10Egp / 1e6, result.risk.npvP50Egp / 1e6, result.risk.npvP90Egp / 1e6],
+            color=[TOKENS["critical"], TOKENS["solar"], TOKENS["success"]],
+        )
+        ax3.set_ylabel("NPV (Million EGP)")
+        ax3.set_facecolor("#F8FAFC")
+        fig3.patch.set_facecolor("#FFFFFF")
+        st.pyplot(fig3)
+        st.caption(f"Monte Carlo NPV uncertainty range ({result.risk.runCount} simulations).")
 
-    fig4, ax4 = plt.subplots(figsize=(9, 2.5))
-    drivers = result.risk.topSensitivityDrivers
-    ax4.barh([d.variable for d in drivers][::-1], [d.influence * 100 for d in drivers][::-1],
-             color=TOKENS["technical"])
-    ax4.set_xlabel("Relative influence on NPV (%)")
-    st.pyplot(fig4)
-    st.caption("Sensitivity drivers, one-at-a-time perturbation.")
+    with f_col2:
+        fig4, ax4 = plt.subplots(figsize=(6, 3))
+        drivers = result.risk.topSensitivityDrivers
+        ax4.barh([d.variable for d in drivers][::-1], [d.influence * 100 for d in drivers][::-1], color=TOKENS["technical"])
+        ax4.set_xlabel("Relative NPV Sensitivity (%)")
+        ax4.set_facecolor("#F8FAFC")
+        fig4.patch.set_facecolor("#FFFFFF")
+        st.pyplot(fig4)
+        st.caption("One-at-a-time sensitivity ranking on project NPV.")
 
-# --- Site ----------------------------------------------------------------------
+# --- Tab 3: Site & GIS Spatial Screening ---
 with tab_site:
+    st.markdown("#### GIS Spatial & Environmental Screening")
     if not result.gisFindings:
-        st.info("No GIS findings for this run.")
+        st.info("No spatial constraints recorded for this site.")
     for f in result.gisFindings:
-        icon = {"info": "✓", "warning": "⚠", "critical": "✕", "unknown": "?"}[f.severity]
-        color = {"info": TOKENS["success"], "warning": TOKENS["warning"],
-                 "critical": TOKENS["critical"], "unknown": TOKENS["unknown"]}[f.severity]
-        st.markdown(f'<span style="color:{color};font-weight:600;">{icon} {f.title}</span>',
-                    unsafe_allow_html=True)
-        details = f"Category: {f.category}"
-        if f.value is not None:
-            details += f" | Value: {f.value}{(' ' + f.unit) if f.unit else ''}"
-        details += f" | Source: {f.sourceName}"
-        st.caption(details)
-        if f.limitations:
-            st.caption("Limitations: " + " ".join(x for x in f.limitations if x))
+        badge_style = {
+            "info": ("✓ Clear", "bg-emerald-100 text-emerald-800 border-emerald-300"),
+            "warning": ("⚠ Condition", "bg-amber-100 text-amber-800 border-amber-300"),
+            "critical": ("✕ Blocker", "bg-rose-100 text-rose-800 border-rose-300"),
+            "unknown": ("? Unknown", "bg-slate-100 text-slate-700 border-slate-300"),
+        }.get(f.severity, ("?", "bg-slate-100 text-slate-700 border-slate-300"))
+        
+        st.markdown(
+            f"""
+            <div class="gadded-glass-card mb-3">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="font-extrabold text-slate-900">{f.title}</div>
+                    <span class="px-2.5 py-0.5 rounded text-xs font-bold border {badge_style[1]}">{badge_style[0]}</span>
+                </div>
+                <div class="text-xs text-slate-600 mb-2">Category: <strong>{f.category}</strong> | Source: <strong>{f.sourceName}</strong></div>
+                {f'<div class="text-xs font-bold text-slate-900 mb-1">Value: {f.value} {f.unit or ""}</div>' if f.value is not None else ''}
+                {'<div class="text-[11px] text-slate-500 italic">Limitations: ' + ' '.join(f.limitations) + '</div>' if f.limitations else ''}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-# --- Regulatory ------------------------------------------------------------------
+# --- Tab 4: Regulatory Compliance & AI ---
 with tab_reg:
+    st.markdown("#### Egyptian Solar Legal Framework (Circular 3/2023 & EEAA)")
     if not result.regulatoryFindings:
-        st.info("No regulatory findings for this run.")
+        st.info("No regulatory findings evaluated.")
     for f in result.regulatoryFindings:
-        color = {"info": TOKENS["success"], "warning": TOKENS["warning"], "critical": TOKENS["critical"]}[f.severity]
-        st.markdown(f'<span style="color:{color};font-weight:600;">{f.title}</span>', unsafe_allow_html=True)
-        st.write(f.explanation)
-        st.caption(f"Conclusion: {f.conclusion} | Confidence: {f.confidence} | "
-                   f"Verification required: {'yes' if f.verificationRequired else 'no'}")
-        if f.requiredDocuments:
-            st.write("Required documents:", ", ".join(f.requiredDocuments))
-        for c in f.citations:
-            with st.expander(f"Citation: {c.documentTitle}"):
-                st.write(f"**Authority:** {c.authority}")
-                st.write(f"**Effective date:** {c.effectiveDate or 'n/a'}")
-                st.write(f"> {c.excerpt}")
-        st.divider()
+        st.markdown(
+            f"""
+            <div class="gadded-glass-card mb-4">
+                <div class="font-extrabold text-slate-900 text-base mb-1">{f.title}</div>
+                <p class="text-xs text-slate-700 font-medium mb-2">{f.explanation}</p>
+                <div class="text-xs text-slate-500 mb-2">
+                    Conclusion: <strong>{f.conclusion}</strong> | Confidence: <strong>{f.confidence}</strong> | Verification Required: <strong>{'Yes' if f.verificationRequired else 'No'}</strong>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if f.citations:
+            for c in f.citations:
+                with st.expander(f"📜 Authority Citation: {c.documentTitle} ({c.authority})"):
+                    st.write(f"**Effective Date:** {c.effectiveDate or 'n/a'}")
+                    st.write(f"> *{c.excerpt}*")
 
     if run["reg_explanation"]:
-        st.write("**AI explanation (grounded in the excerpts/rules above):**")
-        st.write(run["reg_explanation"])
+        st.markdown("##### 🤖 Grounded Groq AI Legal Analysis")
+        st.info(run["reg_explanation"])
     elif run["reg_error"]:
         st.warning(run["reg_error"])
 
-# --- Vendors --------------------------------------------------------------------
+# --- Tab 5: Vendor Discovery ---
 with tab_vendor:
+    st.markdown("#### Local EPC Vendor Discovery")
     if not result.vendors:
         if run["vendor_warnings"]:
-            st.warning("Vendor search unavailable this run: " + "; ".join(run["vendor_warnings"]))
+            st.warning("Vendor discovery note: " + "; ".join(run["vendor_warnings"]))
         else:
-            st.info("Vendor discovery was not run for this assessment.")
+            st.info("Vendor discovery was not executed for this run.")
     else:
-        st.caption("Leads to independently verify — not an endorsed or ranked list.")
+        st.caption("Screened vendor candidates with verified web evidence links.")
         for v in result.vendors:
-            with st.container(border=True):
-                st.write(f"**{v.name}** — [{v.websiteUrl}]({v.websiteUrl})")
-                st.write(v.fitExplanation)
-                st.caption(f"Verification status: {v.verificationStatus}")
-                for e in v.evidence:
-                    st.caption(f"Evidence: [{e.title}]({e.url})")
+            st.markdown(
+                f"""
+                <div class="gadded-glass-card mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-extrabold text-slate-900 text-base">{v.name}</div>
+                        <a href="{v.websiteUrl}" target="_blank" class="text-xs font-bold text-emerald-700 hover:underline">Visit Website ↗</a>
+                    </div>
+                    <p class="text-xs text-slate-700 mb-2 font-medium">{v.fitExplanation}</p>
+                    <div class="text-[11px] text-slate-500">Verification Status: <strong>{v.verificationStatus}</strong></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-# --- Report -----------------------------------------------------------------------
+# --- Tab 6: Full Report & System Metadata ---
 with tab_report:
-    st.components.v1.html(html, height=600, scrolling=True)
-    if result.warnings:
-        st.write("**Warnings**")
-        for w in result.warnings:
-            st.caption("- " + w)
+    st.markdown("#### Rendered Assessment Report & Metadata")
+    st.components.v1.html(html_report, height=600, scrolling=True)
+    
+    with st.expander("🔧 System Model Versions & Assumption Set"):
+        st.write(f"**Assumption Set ID:** `{result.versions.assumptionSet}`")
+        st.write(f"**Load Model Version:** `{result.versions.loadModel}`")
+        st.write(f"**PV Model:** `{result.versions.pvModel}`")
+        st.write(f"**Weather Dataset:** {run['weather'].source_name} (Retrieved {run['weather'].retrieved_at})")
 
-st.markdown(f'<div class="gadded-disclaimer">{DISCLAIMER}</div>', unsafe_allow_html=True)
+# Persistent footer disclaimer
+st.markdown(f"<div class='text-center text-xs text-slate-400 mt-8 mb-4'>{DISCLAIMER}</div>", unsafe_allow_html=True)
