@@ -1,0 +1,37 @@
+{
+  "projectId": "gadded-golden-001",
+  "projectName": "10th of Ramadan Food Processing Rooftop Solar",
+  "projectType": "industrial_rooftop",
+  "connectionModel": "self_consumption",
+  "location": {
+    "latitude": 30.3009,
+    "longitude": 31.7411,
+    "address": "10th of Ramadan City industrial zone, Egypt",
+    "governorate": "Sharqia",
+    "industrialZone": "10th of Ramadan City"
+  },
+  "factory": {
+    "sector": "food_processing",
+    "monthlyConsumptionKwh": [
+      145000, 140000, 150000, 160000, 175000, 185000,
+      190000, 188000, 172000, 162000, 150000, 146000
+    ],
+    "workingDaysPerWeek": 6,
+    "shiftPattern": "day_shift",
+    "shiftStartHour": 7,
+    "shiftEndHour": 17
+  },
+  "site": {
+    "availableRoofAreaM2": 3000,
+    "ownershipStatus": "owned",
+    "roofType": "flat_concrete",
+    "connectionVoltage": "22kV"
+  },
+  "finance": {
+    "preference": "compare",
+    "targetPaybackYears": 6
+  },
+  "timeline": {
+    "targetCommissioningDate": "2026-12-01"
+  }
+}

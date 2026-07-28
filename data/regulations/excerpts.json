@@ -1,0 +1,65 @@
+{
+  "manifest": {
+    "id": "gadded-regulatory-excerpts-0.1.0",
+    "source_class": "SYNTHETIC",
+    "provenance": "Illustrative placeholder regulatory text authored for this hackathon PoC. The authority name 'Demo National Electricity Regulatory Authority (DNERA)' is FICTIONAL and is not EgyptERA, NREA, EEAA, or any real Egyptian body. No real regulatory document was available to ingest within the hackathon timebox. Structure (permit paths, thresholds, ownership rules) is modeled on how such rules are typically organized, not copied from a real source.",
+    "effectiveDate": "2026-07-28",
+    "limitations": [
+      "Not authoritative. Do not use for real permitting decisions.",
+      "Capacity thresholds and durations are illustrative, not sourced from EgyptERA."
+    ]
+  },
+  "excerpts": [
+    {
+      "id": "exc-001",
+      "documentId": "doc-dnera-dg-rules-2025",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "documentTitle": "Illustrative Distributed Generation Rules for Industrial Facilities",
+      "publicationDate": "2025-03-01",
+      "effectiveDate": "2025-04-01",
+      "sourceUrl": null,
+      "language": "en",
+      "projectTypeScope": ["industrial_rooftop"],
+      "connectionModelScope": ["self_consumption"],
+      "geography": ["10th of Ramadan City Industrial Zone", "6th of October City Industrial Zone"],
+      "section": "3.2",
+      "page": 14,
+      "supersededBy": null,
+      "text": "Industrial facilities may install self-consumption solar PV systems without a generation-capacity limit tied to grid export, provided the system does not export power to the distribution network. Roof-mounted systems require the facility to hold ownership of the roof, or written authorization from the property owner, before connection approval is granted by the local distribution company."
+    },
+    {
+      "id": "exc-002",
+      "documentId": "doc-dnera-net-metering-2025",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "documentTitle": "Illustrative Net-Metering Program Rules for Commercial and Industrial Customers",
+      "publicationDate": "2025-05-15",
+      "effectiveDate": "2025-06-01",
+      "sourceUrl": null,
+      "language": "en",
+      "projectTypeScope": ["industrial_rooftop"],
+      "connectionModelScope": ["net_metering"],
+      "geography": ["10th of Ramadan City Industrial Zone", "6th of October City Industrial Zone"],
+      "section": "5.1",
+      "page": 22,
+      "supersededBy": null,
+      "text": "Net-metering interconnection is available to commercial and industrial customers with generation capacity up to 20,000 kW per site. Systems above this threshold must apply under the separate independent-power-producer program. All net-metering systems must pass a technical interconnection study before energization, expected to take 30 to 60 business days from application. Export is credited at the volumetric net-metering rate published by the distribution company."
+    },
+    {
+      "id": "exc-003",
+      "documentId": "doc-dnera-env-screening-2024",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "documentTitle": "Illustrative Environmental Screening Note for Renewable Energy Siting",
+      "publicationDate": "2024-11-10",
+      "effectiveDate": "2025-01-01",
+      "sourceUrl": null,
+      "language": "en",
+      "projectTypeScope": ["industrial_rooftop"],
+      "connectionModelScope": ["self_consumption", "net_metering"],
+      "geography": ["10th of Ramadan City Industrial Zone", "6th of October City Industrial Zone"],
+      "section": "2.1",
+      "page": 5,
+      "supersededBy": null,
+      "text": "Proposed renewable energy sites that intersect a designated protected area require an environmental impact assessment and written clearance from the environmental authority before any construction permit may be issued."
+    }
+  ]
+}

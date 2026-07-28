@@ -1,0 +1,10 @@
+{
+  "dataset_id": "nasa_power_30.3009_31.7411_2026-07-28",
+  "source_name": "NASA POWER Hourly",
+  "latitude": 30.3009,
+  "longitude": 31.7411,
+  "retrieved_at": "2026-07-28T09:36:08.323963+00:00",
+  "source_timezone": "UTC",
+  "display_timezone": "Africa/Cairo",
+  "warnings": []
+}

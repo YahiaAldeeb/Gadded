@@ -1,0 +1,55 @@
+{
+  "manifest": {
+    "id": "gadded-load-archetypes-0.1.0",
+    "version": "0.1.0",
+    "method": "parametric synthetic",
+    "source_class": "SYNTHETIC",
+    "provenance": "Hand-parameterized industrial load shapes for Egyptian food-processing and textile factories. Each shape is a 24/7 base/standby load plus a production block during shift hours, reduced on the weekly rest day. These profiles are synthetic and are NOT derived from measured factory interval data; they encode plausible operating patterns only.",
+    "effectiveDate": "2026-07-28",
+    "limitations": [
+      "Not validated against measured Egyptian factory load.",
+      "Intra-day shape is representative, not measured.",
+      "Cross-month seasonality comes entirely from user monthly kWh, not the archetype."
+    ]
+  },
+  "defaults": {
+    "shift_hours": {
+      "day_shift": [7, 17],
+      "two_shifts": [6, 22],
+      "continuous": [0, 24]
+    },
+    "weekend_days": [4, 5]
+  },
+  "archetypes": {
+    "food_processing|day_shift": {
+      "base_fraction": 0.35,
+      "weekend_base_factor": 1.0,
+      "notes": "High refrigeration standby load runs 24/7 including the rest day."
+    },
+    "food_processing|two_shifts": {
+      "base_fraction": 0.40,
+      "weekend_base_factor": 1.0,
+      "notes": "Extended production plus continuous refrigeration."
+    },
+    "food_processing|continuous": {
+      "base_fraction": 0.65,
+      "weekend_base_factor": 0.95,
+      "notes": "Near-flat continuous operation."
+    },
+    "textiles|day_shift": {
+      "base_fraction": 0.20,
+      "weekend_base_factor": 0.6,
+      "notes": "Lower standby; most load tracks the production shift."
+    },
+    "textiles|two_shifts": {
+      "base_fraction": 0.25,
+      "weekend_base_factor": 0.6,
+      "notes": "Two production shifts, modest standby."
+    },
+    "textiles|continuous": {
+      "base_fraction": 0.55,
+      "weekend_base_factor": 0.9,
+      "notes": "Continuous spinning/weaving lines."
+    }
+  }
+}

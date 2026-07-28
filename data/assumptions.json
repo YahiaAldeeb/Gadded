@@ -1,0 +1,186 @@
+{
+  "assumptionSet": {
+    "id": "gadded-poc-baseline-0.1.0",
+    "name": "gadded-poc-baseline",
+    "version": "0.1.0",
+    "status": "ACTIVE",
+    "effectiveDate": "2026-07-28"
+  },
+  "values": {
+    "pv_tilt_degrees": {
+      "value": 25,
+      "unit": "degrees",
+      "classification": "LITERATURE_PROXY",
+      "source": "near-latitude fixed tilt for ~30N",
+      "notes": "Egypt rooftop fixed-tilt rule of thumb."
+    },
+    "pv_azimuth_degrees": {
+      "value": 180,
+      "unit": "degrees",
+      "classification": "DEMO",
+      "source": "due south",
+      "notes": "180 = south-facing, northern hemisphere optimum."
+    },
+    "pv_system_loss_pct": {
+      "value": 14,
+      "unit": "percent",
+      "classification": "LITERATURE_PROXY",
+      "source": "NREL PVWatts default loss stack",
+      "notes": "Soiling, wiring, inverter, mismatch aggregate."
+    },
+    "capex_per_kw_egp": {
+      "value": 32000,
+      "unit": "EGP/kW",
+      "classification": "MARKET_RANGE",
+      "source": "commercial rooftop EPC observed range",
+      "notes": "DEMO placeholder; replace with sourced quote before any formal claim."
+    },
+    "opex_per_kw_year_egp": {
+      "value": 500,
+      "unit": "EGP/kW/year",
+      "classification": "MARKET_RANGE",
+      "source": "O&M proxy",
+      "notes": "Cleaning, monitoring, minor repairs."
+    },
+    "degradation_pct_year": {
+      "value": 0.5,
+      "unit": "percent/year",
+      "classification": "LITERATURE_PROXY",
+      "source": "typical crystalline-Si linear degradation",
+      "notes": ""
+    },
+    "discount_rate_pct": {
+      "value": 12,
+      "unit": "percent",
+      "classification": "DEMO",
+      "source": "assumed real discount rate",
+      "notes": "State nominal-vs-real in finance module output."
+    },
+    "analysis_period_years": {
+      "value": 25,
+      "unit": "years",
+      "classification": "DEMO",
+      "source": "module design life",
+      "notes": ""
+    },
+    "tariff_retail_egp_per_kwh": {
+      "value": 2.3,
+      "unit": "EGP/kWh",
+      "classification": "DEMO",
+      "source": "industrial tariff placeholder",
+      "notes": "Not authoritative; replace with EgyptERA schedule before formal use."
+    },
+    "export_price_egp_per_kwh": {
+      "value": 1.15,
+      "unit": "EGP/kWh",
+      "classification": "DEMO",
+      "source": "net-metering credit placeholder",
+      "notes": "Self-consumption golden case; export value only for surplus."
+    },
+    "tariff_escalation_pct": {
+      "value": 5,
+      "unit": "percent/year",
+      "classification": "DEMO",
+      "source": "assumed tariff escalation",
+      "notes": ""
+    },
+    "financing_rate_pct": {
+      "value": 18,
+      "unit": "percent/year",
+      "classification": "MARKET_RANGE",
+      "source": "Egyptian commercial lending proxy",
+      "notes": ""
+    },
+    "financing_term_years": {
+      "value": 7,
+      "unit": "years",
+      "classification": "DEMO",
+      "source": "assumed loan term",
+      "notes": ""
+    },
+    "down_payment_pct": {
+      "value": 20,
+      "unit": "percent",
+      "classification": "DEMO",
+      "source": "assumed down payment",
+      "notes": ""
+    },
+    "financing_fees_pct": {
+      "value": 1,
+      "unit": "percent of capex",
+      "classification": "DEMO",
+      "source": "assumed arrangement fee",
+      "notes": ""
+    },
+    "area_per_kw_m2": {
+      "value": 6.0,
+      "unit": "m2/kW",
+      "classification": "LITERATURE_PROXY",
+      "source": "flat-roof C&I module + row-spacing footprint",
+      "notes": "Includes inter-row spacing on flat roof."
+    },
+    "capacity_step_kw": {
+      "value": 25,
+      "unit": "kW",
+      "classification": "DEMO",
+      "source": "sizing search granularity",
+      "notes": ""
+    },
+    "monte_carlo_runs": {
+      "value": 2000,
+      "unit": "runs",
+      "classification": "DEMO",
+      "source": "simulation count",
+      "notes": ""
+    },
+    "monte_carlo_seed": {
+      "value": 42,
+      "unit": "seed",
+      "classification": "DEMO",
+      "source": "reproducibility seed",
+      "notes": ""
+    },
+    "reconciliation_tolerance_pct": {
+      "value": 2.0,
+      "unit": "percent",
+      "classification": "DEMO",
+      "source": "load reconciliation tolerance",
+      "notes": "Max allowed monthly energy mismatch."
+    },
+    "irradiance_variability_pct": {
+      "value": 5,
+      "unit": "percent",
+      "classification": "LITERATURE_PROXY",
+      "source": "inter-annual PV yield variability",
+      "notes": "Monte Carlo PV-yield distribution width."
+    },
+    "capex_variability_pct": {
+      "value": 10,
+      "unit": "percent",
+      "classification": "DEMO",
+      "source": "capex uncertainty",
+      "notes": "Monte Carlo capex distribution width."
+    },
+    "opex_variability_pct": {
+      "value": 15,
+      "unit": "percent",
+      "classification": "DEMO",
+      "source": "O&M cost uncertainty",
+      "notes": "Monte Carlo opex distribution width."
+    },
+    "tariff_escalation_variability_pct": {
+      "value": 40,
+      "unit": "percent of base rate",
+      "classification": "DEMO",
+      "source": "tariff policy uncertainty",
+      "notes": "Relative width around tariff_escalation_pct; Egyptian industrial tariffs have moved sharply in recent years."
+    },
+    "financing_rate_variability_pct": {
+      "value": 15,
+      "unit": "percent of base rate",
+      "classification": "DEMO",
+      "source": "commercial lending rate uncertainty",
+      "notes": "Relative width around financing_rate_pct; used only for the finance scenario."
+    }
+  }
+}

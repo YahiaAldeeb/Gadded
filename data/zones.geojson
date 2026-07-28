@@ -1,0 +1,124 @@
+{
+  "type": "FeatureCollection",
+  "manifest": {
+    "id": "gadded-gis-layers-0.1.0",
+    "source_class": "SYNTHETIC",
+    "provenance": "Hand-drawn approximate boundaries for the Gadded PoC. NOT an authoritative Egyptian GIS dataset (no IDA industrial-zone boundary, no official EEAA protected-area layer, no real grid/substation data was available for this hackathon timebox). Coordinates are illustrative approximations of real place names, sized to demonstrate point-in-polygon and distance screening on the golden case and one alternate scenario.",
+    "retrieved_at": "2026-07-28",
+    "coverage": "Two named industrial zones only; nothing outside their extents is covered.",
+    "limitations": [
+      "Not authoritative — do not use for real site selection or permitting.",
+      "Substation and road features are illustrative points/lines, not verified grid infrastructure.",
+      "Protected-area polygon is a synthetic placeholder, not a real EEAA-designated boundary."
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-10th-ramadan",
+        "category": "industrial_zone",
+        "name": "10th of Ramadan City Industrial Zone",
+        "source_class": "SYNTHETIC",
+        "source_name": "hand-drawn approximation for Gadded PoC",
+        "source_date": "2026-07-28",
+        "notes": "Contains the golden demo case site."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [31.690, 30.280], [31.790, 30.280], [31.790, 30.330],
+          [31.690, 30.330], [31.690, 30.280]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "zone-6th-october",
+        "category": "industrial_zone",
+        "name": "6th of October City Industrial Zone",
+        "source_class": "SYNTHETIC",
+        "source_name": "hand-drawn approximation for Gadded PoC",
+        "source_date": "2026-07-28",
+        "notes": "Second PoC-supported zone; used for the alternate scenario."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [30.880, 29.850], [30.980, 29.850], [30.980, 29.950],
+          [30.880, 29.950], [30.880, 29.850]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "protected-demo-buffer",
+        "category": "protected_area",
+        "name": "Demo protected-area placeholder (synthetic)",
+        "source_class": "SYNTHETIC",
+        "source_name": "synthetic placeholder, not an official EEAA boundary",
+        "source_date": "2026-07-28",
+        "notes": "Does not intersect the golden site; included to exercise the critical-finding path."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [31.800, 30.335], [31.830, 30.335], [31.830, 30.360],
+          [31.800, 30.360], [31.800, 30.335]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation-a",
+        "category": "substation",
+        "name": "Demo substation proxy A",
+        "source_class": "SYNTHETIC",
+        "source_name": "illustrative point, not verified grid data",
+        "source_date": "2026-07-28",
+        "notes": "Roughly 1 km from the golden site."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [31.750, 30.305]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "substation-b",
+        "category": "substation",
+        "name": "Demo substation proxy B",
+        "source_class": "SYNTHETIC",
+        "source_name": "illustrative point, not verified grid data",
+        "source_date": "2026-07-28",
+        "notes": "Located near the 6th of October zone."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [30.930, 29.900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "road-main-10th-ramadan",
+        "category": "road",
+        "name": "Demo main access road, 10th of Ramadan",
+        "source_class": "SYNTHETIC",
+        "source_name": "illustrative line, not sourced from OpenStreetMap",
+        "source_date": "2026-07-28",
+        "notes": "Runs through the industrial zone near the golden site."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.700, 30.295], [31.740, 30.300], [31.780, 30.310]
+        ]
+      }
+    }
+  ]
+}

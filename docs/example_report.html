@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gadded Preliminary Assessment — 10th of Ramadan Food Processing Rooftop Solar</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px;
+         margin: 2rem auto; padding: 0 1rem; color: #17211B; background: #F6F7F2; }
+  h1, h2 { color: #183B56; }
+  .status { display:inline-block; padding: 0.4rem 0.9rem; border-radius: 999px;
+            font-weight: 600; border: 1px solid #DCE2D9; }
+  .status-likely_feasible { background:#E3F4EA; color:#237A4B; }
+  .status-feasible_with_conditions { background:#FFF4D5; color:#B76A00; }
+  .status-high_risk, .status-potentially_ineligible { background:#FBE9E9; color:#B93A3A; }
+  .status-insufficient_information { background:#EEF1E8; color:#667085; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.5rem; }
+  th, td { border: 1px solid #DCE2D9; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.92rem; }
+  th { background: #EEF1E8; }
+  .disclaimer { background:#FFF4D5; border:1px solid #E7A927; padding:0.8rem 1rem;
+                border-radius: 0.75rem; margin: 1.5rem 0; font-size: 0.9rem; }
+  .warn { color:#B76A00; } .crit { color:#B93A3A; } .info { color:#237A4B; }
+  code { background:#EEF1E8; padding:0.1rem 0.3rem; border-radius:0.3rem; }
+  .muted { color:#7A877F; font-size:0.85rem; }
+</style>
+</head>
+<body>
+
+<h1>10th of Ramadan Food Processing Rooftop Solar</h1>
+<p class="muted">Run run-20260728T114951 · Assessment gadded-golden-001 · Generated 2026-07-28T11:49:51.594247+00:00</p>
+<p><span class="status status-likely_feasible">Likely feasible</span></p>
+
+<div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
+
+<h2>Technical recommendation</h2>
+<table>
+  <tr><th>Recommended capacity</th><td>350 kW
+      (physical roof maximum: 500 kW)</td></tr>
+  <tr><th>Annual PV generation</th><td>611,950 kWh</td></tr>
+  <tr><th>Annual factory load</th><td>1,963,000 kWh</td></tr>
+  <tr><th>Self-consumption ratio</th><td>95.4%</td></tr>
+  <tr><th>Self-sufficiency ratio</th><td>29.7%</td></tr>
+  <tr><th>Imported / exported energy</th><td>1,379,134 kWh
+      imported / 28,085 kWh exported</td></tr>
+  <tr><th>Roof area required</th><td>2100 m²</td></tr>
+  <tr><th>Binding constraint</th><td>economic_optimum</td></tr>
+  <tr><th>Sizing objective</th><td><code>npv</code>
+      over 20 evaluated candidate sizes</td></tr>
+</table>
+
+<h2>Financial scenarios</h2>
+<table>
+  <tr><th>Scenario</th><th>Capex</th><th>Year-1 net savings</th><th>NPV</th><th>IRR</th>
+      <th>Simple payback</th><th>Discounted payback</th><th>Monthly loan</th></tr>
+  
+  <tr>
+    <td>cash</td>
+    <td>11,200,000 EGP</td>
+    <td>1,167,891 EGP</td>
+    <td>2,137,051 EGP</td>
+    <td>14.1%</td>
+    <td>8.0 yr</td>
+    <td>17.2 yr</td>
+    <td>n/a</td>
+  </tr>
+  
+  <tr>
+    <td>finance</td>
+    <td>11,200,000 EGP</td>
+    <td>1,167,891 EGP</td>
+    <td>671,701 EGP</td>
+    <td>12.9%</td>
+    <td>11.8 yr</td>
+    <td>22.1 yr</td>
+    <td>188,320 EGP</td>
+  </tr>
+  
+</table>
+<p class="muted">Nominal cash flows; includes O&M, tariff escalation, panel degradation. Excludes tax,
+general inflation adjustment, inverter replacement, and residual value.</p>
+
+<h2>Risk (Monte Carlo, 2000 runs, seed 42)</h2>
+<table>
+  <tr><th></th><th>P10</th><th>P50 (median)</th><th>P90</th></tr>
+  <tr><th>NPV (EGP)</th>
+      <td>-1,001,942</td>
+      <td>2,041,949</td>
+      <td>6,067,977</td></tr>
+  <tr><th>Payback (years)</th>
+      <td>7.0</td>
+      <td>8.0</td>
+      <td>9.4</td></tr>
+</table>
+
+<p>Probability of meeting the target payback: <strong>0.4%</strong></p>
+
+<h3>Top sensitivity drivers</h3>
+<table>
+  <tr><th>Variable</th><th>Relative influence</th></tr>
+  
+  <tr><td>tariff_escalation</td><td>57%</td></tr>
+  
+  <tr><td>capex</td><td>23%</td></tr>
+  
+  <tr><td>pv_yield</td><td>15%</td></tr>
+  
+  <tr><td>opex</td><td>4%</td></tr>
+  
+</table>
+
+<h2>Site screening</h2>
+<table>
+  <tr><th>Category</th><th>Severity</th><th>Title</th><th>Value</th><th>Source</th></tr>
+  
+  <tr>
+    <td>industrial_zone</td>
+    <td class="info">info</td>
+    <td>Site is inside 10th of Ramadan City Industrial Zone</td>
+    <td>10th of Ramadan City Industrial Zone</td>
+    <td class="muted">hand-drawn approximation for Gadded PoC</td>
+  </tr>
+  
+  <tr>
+    <td>protected_area</td>
+    <td class="info">info</td>
+    <td>Site does not intersect any mapped protected area</td>
+    <td>False</td>
+    <td class="muted">gadded-gis-layers</td>
+  </tr>
+  
+  <tr>
+    <td>substation_distance</td>
+    <td class="info">info</td>
+    <td>Nearest mapped substation: Demo substation proxy A</td>
+    <td>968.5 m</td>
+    <td class="muted">illustrative point, not verified grid data</td>
+  </tr>
+  
+  <tr>
+    <td>road_distance</td>
+    <td class="info">info</td>
+    <td>Nearest mapped road: Demo main access road, 10th of Ramadan</td>
+    <td>66.8 m</td>
+    <td class="muted">illustrative line, not sourced from OpenStreetMap</td>
+  </tr>
+  
+</table>
+
+<h2>Regulatory findings</h2>
+
+<table>
+  <tr><th>Self-consumption connection is supported for this site</th><td class="info">
+      applicable · info · confidence high</td></tr>
+  <tr><td colspan="2">Self-consumption solar is permitted for industrial facilities without a generation-capacity limit on export, since the system does not export to the grid. Roof ownership/authorization is confirmed for this assessment.</td></tr>
+  <tr><th>Required documents</th><td>Proof of roof ownership or landlord authorization letter</td></tr>
+  
+  <tr><th>Citations</th><td>
+    
+      Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder — <em>Illustrative Distributed Generation Rules for Industrial Facilities</em>, §3.2 (effective 2025-04-01)<br>
+    
+  </td></tr>
+  
+  <tr><td colspan="2" class="muted">Verification required: yes</td></tr>
+</table>
+
+
+<h2>Vendor candidates</h2>
+
+<p class="muted">No vendor candidates found evidence for in this run. Vendor discovery is
+independent of the technical/financial result above and can be re-run separately.</p>
+
+<p class="muted">Vendor leads require independent verification before use.</p>
+
+<h2>Sources, assumptions, and versions</h2>
+<table>
+  <tr><th>Code version</th><td><code>gadded-poc-0.1.0</code></td></tr>
+  <tr><th>Assumption set</th><td><code>gadded-poc-baseline-0.1.0</code></td></tr>
+  <tr><th>Load model</th><td><code>load-cluster-classifier-0.1.0</code></td></tr>
+  <tr><th>PV model</th><td><code>pvlib-pvwatts-0.1.0</code></td></tr>
+  <tr><th>Regulatory prompt</th><td><code>reg-explain-0.1.0</code></td></tr>
+  <tr><th>Vendor prompt</th><td><code>vendor-discovery-0.1.0</code></td></tr>
+</table>
+
+
+<h2>Warnings</h2>
+<ul><li class="warn">ML load profile: KMeans clustering + RandomForest classifier trained on a synthetic facility population (see load_ml.py); not measured interval data.</li><li class="warn">search failed for query 'Egyptian commercial and industrial solar EPC company rooftop installation 10th of Ramadan City industrial zone, Egypt': APIStatusError</li><li class="warn">search failed for query 'solar EPC company Egypt industrial rooftop 350 kW project reference': APIStatusError</li></ul>
+
+
+<div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
+
+</body>
+</html>

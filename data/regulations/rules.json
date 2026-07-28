@@ -1,0 +1,126 @@
+{
+  "manifest": {
+    "id": "gadded-regulatory-rules-0.1.0",
+    "effectiveDate": "2026-07-28",
+    "notes": "Deterministic rules derived from data/regulations/excerpts.json. Condition nodes are a small safe DSL (no eval of stored code): {all:[...]} / {any:[...]} / {not:node} / {field, op, value}. Valid ops: eq, ne, in, not_in, gt, gte, lt, lte, contains. Evaluated against a fixed context: connectionModel, ownershipStatus, recommended_capacity_kw, gis_codes (set of GisFinding.code present)."
+  },
+  "rules": [
+    {
+      "ruleId": "RULE-001",
+      "title": "Self-consumption rooftop solar is a supported connection path",
+      "effectiveDate": "2025-04-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "self_consumption",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
+          {"field": "ownershipStatus", "op": "in", "value": ["owned", "rented_authorized"]}
+        ]
+      },
+      "conclusion": "applicable",
+      "severity": "info",
+      "title_template": "Self-consumption connection is supported for this site",
+      "explanation_template": "Self-consumption solar is permitted for industrial facilities without a generation-capacity limit on export, since the system does not export to the grid. Roof ownership/authorization is confirmed for this assessment.",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "requiredDocuments": ["Proof of roof ownership or landlord authorization letter"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-001"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-002",
+      "title": "Self-consumption connection needs ownership authorization on file",
+      "effectiveDate": "2025-04-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "self_consumption",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
+          {"field": "ownershipStatus", "op": "in", "value": ["rented_unknown", "unknown"]}
+        ]
+      },
+      "conclusion": "requires_review",
+      "severity": "warning",
+      "title_template": "Roof ownership/authorization must be confirmed before approval",
+      "explanation_template": "Self-consumption systems require the facility to hold roof ownership or written landlord authorization before the distribution company grants connection approval. This has not been confirmed for this assessment.",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "requiredDocuments": ["Roof ownership deed or landlord authorization letter"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-001"],
+      "confidence": "medium",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-003",
+      "title": "Net-metering capacity exceeds the program threshold",
+      "effectiveDate": "2025-06-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "net_metering",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "net_metering"},
+          {"field": "recommended_capacity_kw", "op": "gt", "value": 20000}
+        ]
+      },
+      "conclusion": "not_applicable",
+      "severity": "critical",
+      "title_template": "Recommended capacity exceeds the net-metering threshold",
+      "explanation_template": "The net-metering program covers systems up to 20,000 kW per site. The recommended capacity exceeds this threshold and would need to apply under the separate independent-power-producer program instead.",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "requiredDocuments": [],
+      "dependencies": ["Independent-power-producer program application"],
+      "citationExcerptIds": ["exc-002"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-004",
+      "title": "Net-metering capacity within the program threshold",
+      "effectiveDate": "2025-06-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "net_metering",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "net_metering"},
+          {"field": "recommended_capacity_kw", "op": "lte", "value": 20000}
+        ]
+      },
+      "conclusion": "applicable",
+      "severity": "info",
+      "title_template": "Net-metering connection is supported for this capacity",
+      "explanation_template": "The recommended capacity is within the 20,000 kW net-metering threshold. A technical interconnection study is required before energization, typically 30-60 business days.",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "requiredDocuments": ["Technical interconnection study application"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-002"],
+      "confidence": "high",
+      "estimatedDurationDays": {"minimum": 30, "maximum": 60, "basis": "published"}
+    },
+    {
+      "ruleId": "RULE-005",
+      "title": "Protected-area intersection requires environmental clearance",
+      "effectiveDate": "2025-01-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": null,
+      "status": "ACTIVE",
+      "condition": {
+        "field": "gis_codes", "op": "contains", "value": "protected_area.intersects"
+      },
+      "conclusion": "requires_review",
+      "severity": "critical",
+      "title_template": "Site intersects a protected area; environmental clearance required",
+      "explanation_template": "The site intersects a designated protected area in the loaded GIS layer. An environmental impact assessment and written clearance from the environmental authority are required before any construction permit may be issued.",
+      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "requiredDocuments": ["Environmental impact assessment", "Environmental authority clearance"],
+      "dependencies": ["Environmental clearance before construction permit"],
+      "citationExcerptIds": ["exc-003"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    }
+  ]
+}
