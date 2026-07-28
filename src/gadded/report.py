@@ -79,23 +79,39 @@ _TEMPLATE = Template("""<!doctype html>
 <meta charset="utf-8">
 <title>Gadded Preliminary Assessment — {{ project_name }}</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px;
-         margin: 2rem auto; padding: 0 1rem; color: #17211B; background: #F6F7F2; }
-  h1, h2 { color: #183B56; }
-  .status { display:inline-block; padding: 0.4rem 0.9rem; border-radius: 999px;
-            font-weight: 600; border: 1px solid #DCE2D9; }
-  .status-likely_feasible { background:#E3F4EA; color:#237A4B; }
-  .status-feasible_with_conditions { background:#FFF4D5; color:#B76A00; }
-  .status-high_risk, .status-potentially_ineligible { background:#FBE9E9; color:#B93A3A; }
-  .status-insufficient_information { background:#EEF1E8; color:#667085; }
-  table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.5rem; }
-  th, td { border: 1px solid #DCE2D9; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.92rem; }
-  th { background: #EEF1E8; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px;
+         margin: 2rem auto; padding: 0 1.5rem; color: #17211B; background: #F6F7F2;
+         -webkit-font-smoothing: antialiased; line-height: 1.6; }
+  h1 { font-size: 1.6rem; font-weight: 700; color: #183B56; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.2rem; font-weight: 600; color: #183B56; letter-spacing: -0.01em;
+       margin-top: 1.75rem; margin-bottom: 0.5rem; padding-bottom: 0.35rem;
+       border-bottom: 1px solid #DCE2D9; }
+  h3 { font-size: 1rem; font-weight: 600; color: #183B56; margin-top: 1.25rem; margin-bottom: 0.35rem; }
+  .status { display:inline-block; padding: 0.4rem 1rem; border-radius: 999px;
+            font-weight: 600; font-size: 0.88rem; border: 1px solid #DCE2D9; }
+  .status-likely_feasible { background:#E3F4EA; color:#237A4B; border-color:#237A4B33; }
+  .status-feasible_with_conditions { background:#FFF4D5; color:#B76A00; border-color:#B76A0033; }
+  .status-high_risk, .status-potentially_ineligible { background:#FBE9E9; color:#B93A3A; border-color:#B93A3A33; }
+  .status-insufficient_information { background:#EEF1E8; color:#667085; border-color:#66708533; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.5rem;
+          border-radius: 8px; overflow: hidden; }
+  th, td { border: 1px solid #DCE2D9; padding: 0.5rem 0.75rem; text-align: left; font-size: 0.88rem; }
+  th { background: #EEF1E8; font-weight: 600; color: #183B56; }
+  tr:nth-child(even) td { background: #FAFBF8; }
   .disclaimer { background:#FFF4D5; border:1px solid #E7A927; padding:0.8rem 1rem;
-                border-radius: 0.75rem; margin: 1.5rem 0; font-size: 0.9rem; }
+                border-radius: 12px; margin: 1.5rem 0; font-size: 0.88rem; color: #526159;
+                border-left: 4px solid #E7A927; }
   .warn { color:#B76A00; } .crit { color:#B93A3A; } .info { color:#237A4B; }
-  code { background:#EEF1E8; padding:0.1rem 0.3rem; border-radius:0.3rem; }
+  code { background:#EEF1E8; padding:0.15rem 0.35rem; border-radius: 4px;
+         font-size: 0.85em; color: #183B56; }
   .muted { color:#7A877F; font-size:0.85rem; }
+  a { color: #1E7A52; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul { padding-left: 1.25rem; }
+  li { margin-bottom: 0.25rem; }
+  p { margin: 0.35rem 0; }
 </style>
 </head>
 <body>

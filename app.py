@@ -70,30 +70,458 @@ def inject_theme() -> None:
     st.markdown(
         f"""
         <style>
-        .stApp {{ background-color: {TOKENS['bg_base']}; color: {TOKENS['text_primary']}; }}
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {{
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --bg-base: {TOKENS['bg_base']};
+            --bg-surface: {TOKENS['bg_surface']};
+            --bg-muted: {TOKENS['bg_muted']};
+            --text-primary: {TOKENS['text_primary']};
+            --text-secondary: {TOKENS['text_secondary']};
+            --text-muted: {TOKENS['text_muted']};
+            --border: {TOKENS['border']};
+            --solar: {TOKENS['solar']};
+            --solar-soft: {TOKENS['solar_soft']};
+            --energy: {TOKENS['energy']};
+            --energy-soft: {TOKENS['energy_soft']};
+            --technical: {TOKENS['technical']};
+            --ai: {TOKENS['ai']};
+            --success: {TOKENS['success']};
+            --warning: {TOKENS['warning']};
+            --critical: {TOKENS['critical']};
+            --unknown: {TOKENS['unknown']};
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+
+        html, body, .stApp {{
+            font-family: var(--font);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+
+        .stApp {{
+            background-color: var(--bg-base);
+        }}
+
+        .stApp [data-testid="stHeader"] {{
+            background-color: transparent;
+        }}
+
+        h1, h2, h3, h4, h5, h6 {{
+            font-family: var(--font);
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }}
+
+        p, li, .stMarkdown {{
+            color: var(--text-primary);
+        }}
+
+        /* ---- Sidebar ---- */
+        .stSidebar {{
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border);
+        }}
+        .stSidebar .stSidebarHeader {{
+            background-color: var(--bg-surface);
+        }}
+        .stSidebar [data-testid="stSidebarContent"] {{
+            background-color: var(--bg-surface);
+            padding: 1.25rem 1rem;
+        }}
+        .stSidebar [data-testid="stSidebarContent"] > div:first-child {{
+            padding-top: 0;
+        }}
+        .stSidebar .stHeader {{
+            font-family: var(--font);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }}
+        .stSidebar .stSubheader {{
+            font-family: var(--font);
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }}
+        .stSidebar .stSelectbox label, .stSidebar .stTextInput label,
+        .stSidebar .stNumberInput label, .stSidebar .stSlider label,
+        .stSidebar .stCheckbox label {{
+            font-family: var(--font);
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }}
+        .stSidebar .stSelectbox > div, .stSidebar .stTextInput > div,
+        .stSidebar .stNumberInput > div, .stSidebar .stSlider > div {{
+            margin-bottom: 0.25rem;
+        }}
+        .stSidebar .stButton button {{
+            font-family: var(--font);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+        }}
+        .stSidebar .stExpander {{
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-base);
+        }}
+        .stSidebar .stExpander summary {{
+            font-family: var(--font);
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }}
+
+        /* ---- Main content area ---- */
+        .main .block-container {{
+            padding-top: 1.5rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            max-width: 100%;
+        }}
+
+        /* ---- Disclaimer ---- */
         .gadded-disclaimer {{
-            background: {TOKENS['solar_soft']}; border: 1px solid {TOKENS['solar']};
-            border-radius: 12px; padding: 0.6rem 1rem; font-size: 0.85rem;
-            color: {TOKENS['text_secondary']}; margin-bottom: 1rem;
+            background: var(--solar-soft);
+            border: 1px solid var(--solar);
+            border-radius: var(--radius-md);
+            padding: 0.7rem 1.1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
         }}
+
+        /* ---- Title area ---- */
+        .main h1 {{
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.1rem;
+        }}
+        .main .stCaption {{
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }}
+
+        /* ---- Metric cards ---- */
         .gadded-card {{
-            background: {TOKENS['bg_surface']}; border: 1px solid {TOKENS['border']};
-            border-radius: 16px; padding: 0.9rem 0.5rem; text-align: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 0.9rem 0.5rem;
+            text-align: center;
         }}
-        .gadded-card .label {{ font-size: 0.75rem; color: {TOKENS['text_muted']}; }}
+        .gadded-card .label {{
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }}
         .gadded-card .value {{
-            font-size: 1.1rem; font-weight: 600; color: {TOKENS['text_primary']};
-            word-break: keep-all; overflow-wrap: normal; white-space: normal;
+            font-family: var(--font);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            word-break: keep-all;
+            overflow-wrap: normal;
+            white-space: normal;
+            letter-spacing: -0.01em;
         }}
+
+        /* ---- Status badge ---- */
         .gadded-status {{
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            border-radius: 999px; padding: 0.5rem 1rem; font-weight: 600;
-            border: 1px solid {TOKENS['border']};
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border-radius: 999px;
+            padding: 0.4rem 1rem;
+            font-family: var(--font);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }}
+        .gadded-status .status-icon {{
+            font-size: 1rem;
+            line-height: 1;
+        }}
+
+
+
+        /* ---- Tabs ---- */
+        .stTabs {{
+            margin-top: 1.25rem;
+        }}
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 0;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            padding: 0.35rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+        }}
+        .stTabs [data-baseweb="tab"] {{
+            font-family: var(--font);
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            padding: 0.45rem 1rem;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+            border: none;
+            background: transparent;
+        }}
+        .stTabs [data-baseweb="tab"]:hover {{
+            color: var(--text-primary);
+            background: var(--bg-muted);
+        }}
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+            color: var(--energy);
+            background: var(--energy-soft);
+            font-weight: 600;
+        }}
+        .stTabs [role="tabpanel"] {{
+            padding-top: 1.25rem;
+        }}
+
+        /* ---- Expanders (sources drawer) ---- */
+        .stExpander {{
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-surface);
+            margin-bottom: 1rem;
+        }}
+        .stExpander summary {{
+            font-family: var(--font);
+            font-weight: 500;
+            color: var(--text-primary);
+            padding: 0.5rem 0;
+        }}
+        .stExpander [data-testid="stExpanderContent"] {{
+            padding-bottom: 0.75rem;
+        }}
+
+        /* ---- Buttons ---- */
+        .stButton button {{
+            font-family: var(--font);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+        }}
+        .stDownloadButton button {{
+            font-family: var(--font);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+        }}
+
+        /* ---- Inputs ---- */
+        .stTextInput input, .stNumberInput input, .stSelectbox > div,
+        .stTextArea textarea {{
+            border-radius: var(--radius-sm) !important;
+            border: 1px solid var(--border) !important;
+            font-family: var(--font);
+        }}
+        .stTextInput input:focus, .stNumberInput input:focus,
+        .stSelectbox > div:focus-within, .stTextArea textarea:focus {{
+            border-color: var(--border) !important;
+            box-shadow: none !important;
+        }}
+
+        /* ---- Info/Warning/Error boxes ---- */
+        .stAlert {{
+            border-radius: var(--radius-md);
+        }}
+        .stAlert [data-testid="stAlertContainer"] {{
+            font-family: var(--font);
+        }}
+
+        /* ---- Dividers ---- */
+        hr {{
+            border-color: var(--border);
+            margin: 1.25rem 0;
+        }}
+
+        /* ---- Containers (bordered) ---- */
+        .stContainer {{
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            background: var(--bg-surface);
+        }}
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] > .stContainer {{
+            margin-bottom: 0.75rem;
+        }}
+
+        /* ---- Metrics inside containers ---- */
+        .stMetric {{
+            background: transparent;
+        }}
+        .stMetric label {{
+            font-family: var(--font);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }}
+        .stMetric [data-testid="stMetricValue"] {{
+            font-family: var(--font);
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }}
+
+        /* ---- Captions ---- */
+        .stCaption {{
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }}
+
+        /* ---- Code blocks ---- */
+        code {{
+            background: var(--bg-muted);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.82em;
+            color: var(--technical);
+        }}
+
+        /* ---- Matplotlib figures ---- */
+        .stImage img, .stImage canvas, .stPyplot figure {{
+            border-radius: var(--radius-md);
+        }}
+
+        /* ---- Loading spinner ---- */
+        .stSpinner {{
+            font-family: var(--font);
+            color: var(--text-secondary);
+        }}
+
+        /* ---- Empty state ---- */
+        .stInfo {{
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+        }}
+
+        /* ---- Success message ---- */
+        .stSuccess {{
+            background: var(--energy-soft);
+            border-color: var(--energy);
+            border-radius: var(--radius-md);
+        }}
+        .stWarning {{
+            background: var(--solar-soft);
+            border-color: var(--solar);
+            border-radius: var(--radius-md);
+        }}
+        .stError {{
+            background: #FBE9E9;
+            border-color: var(--critical);
+            border-radius: var(--radius-md);
+        }}
+
+        /* ---- Checkbox ---- */
+        .stCheckbox label {{
+            font-family: var(--font);
+            font-size: 0.85rem;
+        }}
+
+        /* ---- Scrollbar ---- */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: #c8d0c4;
+            border-radius: 3px;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #a8b0a4;
+        }}
+
+        /* ---- Vendor cards ---- */
+        .vendor-card {{
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }}
+        .vendor-card h4 {{
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }}
+
+        /* ---- Finding items ---- */
+        .finding-item {{
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }}
+        .finding-item .finding-title {{
+            font-weight: 600;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+        .finding-item .finding-detail {{
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            margin-top: 0.25rem;
         }}
         </style>
         """,
         unsafe_allow_html=True,
     )
+    plt.rcParams.update({
+        "font.family": "sans-serif",
+        "font.size": 10,
+        "axes.titlesize": 12,
+        "axes.labelsize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 9,
+        "axes.edgecolor": "#DCE2D9",
+        "axes.grid": True,
+        "grid.alpha": 0.35,
+        "grid.color": "#DCE2D9",
+        "grid.linestyle": "-",
+        "figure.facecolor": "#FFFFFF",
+        "axes.facecolor": "#FFFFFF",
+        "axes.labelcolor": "#526159",
+        "xtick.color": "#7A877F",
+        "ytick.color": "#7A877F",
+        "text.color": "#17211B",
+    })
 
 
 def _fmt_short(value: float, unit: str) -> str:
@@ -124,8 +552,8 @@ def metric_card(col, label: str, value: str) -> None:
 def status_badge(status: str) -> None:
     icon, label, color, bg = STATUS_STYLE.get(status, ("?", status, TOKENS["unknown"], TOKENS["bg_muted"]))
     st.markdown(
-        f'<span class="gadded-status" style="color:{color};background:{bg};">'
-        f'{icon} {label}</span>',
+        f'<span class="gadded-status" style="color:{color};background:{bg};border-color:{color}33;">'
+        f'<span class="status-icon">{icon}</span> {label}</span>',
         unsafe_allow_html=True,
     )
 
@@ -407,7 +835,7 @@ with col2:
 if result.status not in ("likely_feasible",):
     with st.expander("Why this status?", expanded=True):
         for r in run["feas"].reasons:
-            st.write("-", r)
+            st.markdown(f'<p>{r}</p>', unsafe_allow_html=True)
 
 # --- metric strip ------------------------------------------------------------
 m = st.columns(6)
@@ -456,7 +884,7 @@ with tab_tech:
 
     st.write(f"Self-sufficiency: **{rec.selfSufficiencyRatio*100:.1f}%** | "
              f"Imported: **{rec.annualImportedKwh:,.0f} kWh** | Exported: **{rec.annualExportedKwh:,.0f} kWh** | "
-             f"Roof area used: **{rec.roofAreaRequiredM2:,.0f} m2** of {ai.site.availableRoofAreaM2:,.0f} m2 available")
+             f"Roof area used: **{rec.roofAreaRequiredM2:,.0f} m²** of {ai.site.availableRoofAreaM2:,.0f} m² available")
 
     if run["load_profile"].result.confidence == "low":
         st.warning("Load-profile ML confidence was low this run; fell back to the deterministic "
@@ -504,15 +932,20 @@ with tab_site:
         icon = {"info": "✓", "warning": "⚠", "critical": "✕", "unknown": "?"}[f.severity]
         color = {"info": TOKENS["success"], "warning": TOKENS["warning"],
                  "critical": TOKENS["critical"], "unknown": TOKENS["unknown"]}[f.severity]
-        st.markdown(f'<span style="color:{color};font-weight:600;">{icon} {f.title}</span>',
-                    unsafe_allow_html=True)
-        details = f"Category: {f.category}"
-        if f.value is not None:
-            details += f" | Value: {f.value}{(' ' + f.unit) if f.unit else ''}"
-        details += f" | Source: {f.sourceName}"
-        st.caption(details)
-        if f.limitations:
-            st.caption("Limitations: " + " ".join(x for x in f.limitations if x))
+        bg = {"info": TOKENS["energy_soft"], "warning": TOKENS["solar_soft"],
+              "critical": "#FBE9E9", "unknown": TOKENS["bg_muted"]}[f.severity]
+        st.markdown(
+            f'<div class="finding-item" style="border-left:4px solid {color};">'
+            f'<div class="finding-title" style="color:{color};">'
+            f'<span>{icon}</span> {f.title}</div>'
+            f'<div class="finding-detail">Category: {f.category}'
+            + (f" &middot; Value: {f.value}{' ' + f.unit if f.unit else ''}" if f.value is not None else "")
+            + f' &middot; Source: {f.sourceName}</div>'
+            + (f'<div class="finding-detail" style="margin-top:0.15rem;font-style:italic;">'
+               f'Limitations: {" ".join(x for x in f.limitations if x)}</div>' if f.limitations else "")
+            + '</div>',
+            unsafe_allow_html=True
+        )
 
 # --- Regulatory ------------------------------------------------------------------
 with tab_reg:
@@ -520,22 +953,35 @@ with tab_reg:
         st.info("No regulatory findings for this run.")
     for f in result.regulatoryFindings:
         color = {"info": TOKENS["success"], "warning": TOKENS["warning"], "critical": TOKENS["critical"]}[f.severity]
-        st.markdown(f'<span style="color:{color};font-weight:600;">{f.title}</span>', unsafe_allow_html=True)
-        st.write(f.explanation)
-        st.caption(f"Conclusion: {f.conclusion} | Confidence: {f.confidence} | "
-                   f"Verification required: {'yes' if f.verificationRequired else 'no'}")
-        if f.requiredDocuments:
-            st.write("Required documents:", ", ".join(f.requiredDocuments))
+        bg = {"info": TOKENS["energy_soft"], "warning": TOKENS["solar_soft"],
+              "critical": "#FBE9E9"}[f.severity]
+        st.markdown(
+            f'<div class="finding-item" style="border-left:4px solid {color};margin-bottom:0.75rem;">'
+            f'<div class="finding-title" style="color:{color};">{f.title}</div>'
+            f'<div class="finding-detail" style="margin-top:0.35rem;">{f.explanation}</div>'
+            f'<div class="finding-detail" style="margin-top:0.35rem;">'
+            f'Conclusion: <strong>{f.conclusion}</strong> &middot; '
+            f'Confidence: {f.confidence} &middot; '
+            f'Verification: {"required" if f.verificationRequired else "not required"}</div>'
+            + (f'<div class="finding-detail" style="margin-top:0.25rem;">'
+               f'Required documents: {", ".join(f.requiredDocuments)}</div>' if f.requiredDocuments else "")
+            + '</div>',
+            unsafe_allow_html=True
+        )
         for c in f.citations:
             with st.expander(f"Citation: {c.documentTitle}"):
-                st.write(f"**Authority:** {c.authority}")
-                st.write(f"**Effective date:** {c.effectiveDate or 'n/a'}")
-                st.write(f"> {c.excerpt}")
-        st.divider()
+                st.markdown(f'**Authority:** {c.authority}')
+                st.markdown(f'**Effective date:** {c.effectiveDate or "n/a"}')
+                st.markdown(f'> {c.excerpt}')
 
     if run["reg_explanation"]:
-        st.write("**AI explanation (grounded in the excerpts/rules above):**")
-        st.write(run["reg_explanation"])
+        st.markdown(
+            f'<div style="background:{TOKENS["bg_surface"]};border:1px solid {TOKENS["ai"]}33;'
+            f'border-radius:12px;padding:1rem 1.25rem;margin-top:0.5rem;border-left:4px solid {TOKENS["ai"]};">'
+            f'<strong style="color:{TOKENS["ai"]};">AI explanation</strong>'
+            f'<p style="margin-top:0.5rem;">{run["reg_explanation"]}</p></div>',
+            unsafe_allow_html=True
+        )
     elif run["reg_error"]:
         st.warning(run["reg_error"])
 
@@ -549,19 +995,36 @@ with tab_vendor:
     else:
         st.caption("Leads to independently verify — not an endorsed or ranked list.")
         for v in result.vendors:
-            with st.container(border=True):
-                st.write(f"**{v.name}** — [{v.websiteUrl}]({v.websiteUrl})")
-                st.write(v.fitExplanation)
-                st.caption(f"Verification status: {v.verificationStatus}")
-                for e in v.evidence:
-                    st.caption(f"Evidence: [{e.title}]({e.url})")
+            st.markdown(
+                f'<div class="vendor-card">'
+                f'<h4>{v.name}</h4>'
+                f'<p style="color:{TOKENS["text_secondary"]};font-size:0.9rem;margin:0.25rem 0;">{v.fitExplanation}</p>'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;">'
+                f'<span class="finding-detail">Verification: <strong>{v.verificationStatus}</strong></span>'
+                + (f'<a href="{v.websiteUrl}" target="_blank" style="color:{TOKENS["energy"]};font-size:0.85rem;">{v.websiteUrl}</a>' if v.websiteUrl else "")
+                + '</div>'
+                + (''.join(
+                    f'<div class="finding-detail" style="margin-top:0.35rem;">'
+                    f'<a href="{e.url}" target="_blank" style="color:{TOKENS["energy"]};">{e.title}</a></div>'
+                    for e in v.evidence
+                ) if v.evidence else '')
+                + '</div>',
+                unsafe_allow_html=True
+            )
 
 # --- Report -----------------------------------------------------------------------
 with tab_report:
     st.components.v1.html(html, height=600, scrolling=True)
     if result.warnings:
-        st.write("**Warnings**")
+        st.markdown(
+            f'<div style="background:{TOKENS["solar_soft"]};border:1px solid {TOKENS["solar"]}33;'
+            f'border-radius:12px;padding:1rem 1.25rem;margin-top:1rem;">'
+            f'<strong>Warnings</strong>',
+            unsafe_allow_html=True
+        )
         for w in result.warnings:
-            st.caption("- " + w)
+            st.markdown(f'<div style="font-size:0.85rem;color:{TOKENS["text_secondary"]};margin-top:0.25rem;">&bull; {w}</div>',
+                        unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown(f'<div class="gadded-disclaimer">{DISCLAIMER}</div>', unsafe_allow_html=True)

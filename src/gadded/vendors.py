@@ -72,10 +72,11 @@ Return {"vendors": []} if nothing in the search results supports a real candidat
 
 
 def _default_queries(location: str, capacity_kw: float, connection_model: str) -> list[str]:
+    short_location = location.split(",")[0].strip() if location else "Egypt"
     return [
-        f"Egyptian commercial and industrial solar EPC company rooftop installation {location}",
-        f"solar EPC company Egypt industrial rooftop {capacity_kw:.0f} kW project reference",
-        f"commercial solar installer Egypt {connection_model.replace('_', ' ')} rooftop",
+        f"solar EPC company Egypt industrial rooftop {short_location}",
+        f"Egypt solar installer {capacity_kw:.0f} kW rooftop project",
+        f"solar panel installation Egypt {connection_model.replace('_', ' ')}",
     ]
 
 
@@ -91,7 +92,7 @@ def search_vendor_evidence(
         try:
             resp = client.chat.completions.create(
                 model=model,
-                messages=[{"role": "user", "content": f"Search the web: {q}"}],
+                messages=[{"role": "user", "content": q}],
                 timeout=timeout,
             )
         except Exception as e:

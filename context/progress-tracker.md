@@ -126,6 +126,16 @@ Replaced most of the previously-synthetic/DEMO regulatory, GIS, and financial da
   pages, 86KB) with all the new real numbers and an updated narrative explaining the
   roof-bound/feasible-with-conditions results honestly.
 
+## UI/UX refinement round 2 (Streamlit app — `app.py`)
+
+- Restored Technical and Financial sections to their **original structure and presentation** (plain charts, `st.write`, `st.container(border=True)`, original chart sizes and markers). Only minor polish kept: themed chart colors from existing TOKENS, matplotlib rcParams for grid/font.
+- Restored the **Run Assessment button** to its original design — removed custom CSS that added hover transforms, shadow, and custom background color. The button now renders with Streamlit's native primary button appearance.
+- **Spacing consistency pass:** standardized padding across all card-like elements to `1rem 1.25rem` (containers, finding items, vendor cards, info boxes). Tightened sidebar section spacing (`margin-top: 1rem` for subheaders, `padding: 1.25rem 1rem` for sidebar content). Unified margins between sections.
+- **Removed all hover/transition effects** from non-interactive elements (metric cards, containers, expanders, badges, vendor cards, finding items). Kept only essential styling (borders, colors, typography).
+- Simplified summary header back to basic `st.columns` + `st.subheader`/`st.caption` layout without extra HTML wrappers or custom CSS classes.
+- Removed unused CSS classes (`.summary-header`, `.project-info`, `.status-reasons` wrappers) and stripped unnecessary transitions from inputs, tabs, and buttons.
+- No business logic, calculations, data models, or navigation flow was changed. All 98 tests continue to pass.
+
 ## Remaining (optional, time-permitting)
 
 - `rfq.py` (RFQ generation, spec module 29) — `report.py` already covers the graded-deliverable surface; not required for submission.
