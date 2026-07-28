@@ -56,7 +56,7 @@ def test_candidates_respect_roof() -> None:
 
 def test_budget_constraint_binds() -> None:
     ai, a, w, load = _setup()
-    ai.finance.budgetCeilingEgp = 3_200_000  # 100 kW at 32000 EGP/kW
+    ai.finance.budgetCeilingEgp = 100 * a.number("capex_per_kw_egp")  # caps at 100 kW
     res = optimize_capacity(ai, w, load, a)
     assert max(res.recommendation.evaluatedCapacitiesKw) <= 100 + 1e-6
     assert "budget" in res.recommendation.bindingConstraints

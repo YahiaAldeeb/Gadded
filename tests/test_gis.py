@@ -16,7 +16,7 @@ def _by_code(findings, code):
 
 def test_golden_site_is_inside_10th_ramadan_zone() -> None:
     zones = load_zones(ZONES_PATH)
-    findings = screen_site(30.3009, 31.7411, zones)
+    findings = screen_site(30.3203, 31.7466, zones)
     inside = _by_code(findings, "industrial_zone.inside")
     assert inside.severity == "info"
     assert "10th of Ramadan" in inside.value
@@ -24,7 +24,7 @@ def test_golden_site_is_inside_10th_ramadan_zone() -> None:
 
 def test_golden_site_does_not_intersect_protected_area() -> None:
     zones = load_zones(ZONES_PATH)
-    findings = screen_site(30.3009, 31.7411, zones)
+    findings = screen_site(30.3203, 31.7466, zones)
     protected = _by_code(findings, "protected_area.no_intersection")
     assert protected.severity == "info"
     assert protected.value is False
@@ -57,13 +57,15 @@ def test_second_zone_recognized() -> None:
 
 def test_distance_findings_present_and_positive() -> None:
     zones = load_zones(ZONES_PATH)
-    findings = screen_site(30.3009, 31.7411, zones)
+    findings = screen_site(30.3203, 31.7466, zones)
     sub = _by_code(findings, "substation_distance.nearest")
     road = _by_code(findings, "road_distance.nearest")
     assert sub.unit == "m" and sub.value >= 0
     assert road.unit == "m" and road.value >= 0
-    # golden site is ~1km from substation-a by construction
-    assert sub.value < 5000
+    # golden site sits inside the real 10th of Ramadan industrial zone; real
+    # OSM substations/roads in the wider city area should be within ~10km
+    assert sub.value < 10000
+    assert road.value < 10000
 
 
 def test_missing_layer_returns_unknown_not_clear() -> None:
@@ -74,8 +76,29 @@ def test_missing_layer_returns_unknown_not_clear() -> None:
         assert f.value is None
 
 
-def test_zones_manifest_labels_synthetic_source() -> None:
+def test_zones_manifest_labels_mixed_real_and_synthetic_sources() -> None:
     zones = load_zones(ZONES_PATH)
-    assert zones.manifest["source_class"] == "SYNTHETIC"
-    assert "not an authoritative" in zones.manifest["provenance"].lower() or \
-           "not authoritative" in zones.manifest["provenance"].lower()
+    assert zones.manifest["source_class"] == "MIXED"
+    provenance_lower = zones.manifest["provenance"].lower()
+    assert "openstreetmap" in provenance_lower
+    assert "wdpa" in provenance_lower
+    assert "synthetic" in provenance_lower
+
+
+def test_real_protected_areas_loaded_from_wdpa() -> None:
+    zones = load_zones(ZONES_PATH)
+    wdpa_features = [
+        p for p, _ in zones.by_category("protected_area")
+        if p["source_class"] == "OFFICIAL"
+    ]
+    assert len(wdpa_features) > 40  # 47 real WDPA Egypt sites expected
+
+
+def test_real_industrial_zone_and_road_loaded_from_osm() -> None:
+    zones = load_zones(ZONES_PATH)
+    industrial_official = [
+        p for p, _ in zones.by_category("industrial_zone") if p["source_class"] == "OFFICIAL"
+    ]
+    road_official = [p for p, _ in zones.by_category("road") if p["source_class"] == "OFFICIAL"]
+    assert len(industrial_official) == 1
+    assert len(road_official) == 1

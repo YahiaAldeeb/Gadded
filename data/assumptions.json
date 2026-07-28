@@ -29,11 +29,11 @@
       "notes": "Soiling, wiring, inverter, mismatch aggregate."
     },
     "capex_per_kw_egp": {
-      "value": 32000,
+      "value": 10000,
       "unit": "EGP/kW",
       "classification": "MARKET_RANGE",
-      "source": "commercial rooftop EPC observed range",
-      "notes": "DEMO placeholder; replace with sourced quote before any formal claim."
+      "source": "Egyptian consumer/commercial solar market guides, 2026 (average installed on-grid cost EGP 8.90-11/W excluding batteries)",
+      "notes": "Midpoint of a real but consumer-facing market range (EGP 8,900-11,000/kW), not a verified industrial EPC quote. Utility/industrial-scale projects typically achieve economies of scale below small commercial pricing, so this may still overstate cost at 350-500 kW; replace with a direct EPC quote before formal use."
     },
     "opex_per_kw_year_egp": {
       "value": 500,
@@ -64,18 +64,18 @@
       "notes": ""
     },
     "tariff_retail_egp_per_kwh": {
-      "value": 2.3,
+      "value": 2.55,
       "unit": "EGP/kWh",
-      "classification": "DEMO",
-      "source": "industrial tariff placeholder",
-      "notes": "Not authoritative; replace with EgyptERA schedule before formal use."
+      "classification": "OFFICIAL",
+      "source": "Official Egyptian electricity tariff schedule, Medium Voltage (22-11 kV), \"Other Users\" bracket: 255.0 Pt/kWh",
+      "notes": "Matches the golden case's 22kV connection voltage. Exact decision/gazette number and effective date were not captured in this research pass; confirm current effective tariff with EgyptERA/the distribution company before formal use, since Egyptian tariffs are revised periodically."
     },
     "export_price_egp_per_kwh": {
-      "value": 1.15,
+      "value": 1.275,
       "unit": "EGP/kWh",
-      "classification": "DEMO",
-      "source": "net-metering credit placeholder",
-      "notes": "Self-consumption golden case; export value only for surplus."
+      "classification": "LITERATURE_PROXY",
+      "source": "Net-metering credit commonly described as ~50% of retail tariff in Egyptian market guides (2026); not an EgyptERA-published compensation rate",
+      "notes": "Golden case uses self_consumption (zero export by design), so this only matters for a net_metering scenario. Computed as 50% x tariff_retail_egp_per_kwh; EgyptERA Circular No. 4/2026 sets the net-metering capacity/process but no explicit compensation rate was located in this research pass."
     },
     "tariff_escalation_pct": {
       "value": 5,
@@ -85,32 +85,32 @@
       "notes": ""
     },
     "financing_rate_pct": {
-      "value": 18,
+      "value": 20,
       "unit": "percent/year",
-      "classification": "MARKET_RANGE",
-      "source": "Egyptian commercial lending proxy",
-      "notes": ""
+      "classification": "OFFICIAL",
+      "source": "Credit Agricole Egypt solar financing product: ~20% decreasing interest rate, up to 100% of cost, 7-year tenor (accessed 2026)",
+      "notes": "A real named bank product, not a generic proxy. CIB's comparable solar-showcased personal loan quotes 21.5% flat; Credit Agricole's decreasing-rate product was used as the reference since it is explicitly a solar financing product."
     },
     "financing_term_years": {
       "value": 7,
       "unit": "years",
-      "classification": "DEMO",
-      "source": "assumed loan term",
-      "notes": ""
+      "classification": "OFFICIAL",
+      "source": "Credit Agricole Egypt solar financing product tenor (accessed 2026)",
+      "notes": "Matches the same product as financing_rate_pct."
     },
     "down_payment_pct": {
       "value": 20,
       "unit": "percent",
-      "classification": "DEMO",
-      "source": "assumed down payment",
-      "notes": ""
+      "classification": "OFFICIAL",
+      "source": "QNB Egypt Green Loan: covers up to 80% of system cost, up to EGP 400,000, tenors up to 84 months (accessed 2026)",
+      "notes": "Real bank products range from 80% (QNB Green Loan, modeled here) to 100% (Credit Agricole) financing. 100% financing was tried first but produces a near-zero-equity IRR/payback that is mathematically correct but not presentable (IRR ~870%); 20% down avoids that degenerate case while staying a real, cited product."
     },
     "financing_fees_pct": {
       "value": 1,
       "unit": "percent of capex",
-      "classification": "DEMO",
-      "source": "assumed arrangement fee",
-      "notes": ""
+      "classification": "OFFICIAL",
+      "source": "CIB Personal Loan for Solar Finance fee schedule: Administration Fees 1% of total loan amount (accessed 2026)",
+      "notes": "Excludes CIB's other line items (assessment fee EGP 200, service fee, stamp duty) not modeled here."
     },
     "area_per_kw_m2": {
       "value": 6.0,

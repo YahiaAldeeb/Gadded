@@ -36,17 +36,20 @@ def _gis(category, severity, code="g"):
     )
 
 
-def test_golden_case_end_to_end_is_likely_feasible() -> None:
+def test_golden_case_end_to_end_is_feasible_with_conditions() -> None:
+    # A real Egyptian industrial project always needs an EEAA environmental-impact
+    # assessment (RULE-008); a clean site with confirmed ownership therefore lands on
+    # feasible_with_conditions, not likely_feasible - that condition is real, not a bug.
     corpus = load_excerpts(ROOT / "data" / "regulations" / "excerpts.json")
     rules = load_rules(ROOT / "data" / "regulations" / "rules.json")
     zones = load_zones(ROOT / "data" / "zones.geojson")
 
-    gis_findings = screen_site(30.3009, 31.7411, zones)
-    ctx = build_context("self_consumption", "owned", {f.code for f in gis_findings})
+    gis_findings = screen_site(30.3203, 31.7466, zones)
+    ctx = build_context("self_consumption", "owned", {f.code for f in gis_findings}, recommended_capacity_kw=350)
     reg_findings = evaluate_rules(ctx, rules, corpus)
 
     result = resolve_feasibility(reg_findings, gis_findings, "owned", module_warnings=[])
-    assert result.status == "likely_feasible"
+    assert result.status == "feasible_with_conditions"
 
 
 def test_insufficient_information_beats_everything() -> None:

@@ -90,7 +90,10 @@ def _build_golden_result():
 
 def test_assemble_result_validates() -> None:
     ai, result = _build_golden_result()
-    assert result.status == "likely_feasible"
+    # A real Egyptian industrial project always needs an EEAA environmental review
+    # (RULE-008), so a clean site with confirmed ownership lands on
+    # feasible_with_conditions, not likely_feasible - that condition is real.
+    assert result.status == "feasible_with_conditions"
     assert result.technical.recommendedCapacityKw > 0
     assert len(result.financial) == 2  # golden case preference is "compare"
 
@@ -99,7 +102,7 @@ def test_render_html_contains_key_content() -> None:
     ai, result = _build_golden_result()
     html = render_html(result, ai.projectName, "2026-07-28T12:00:00Z")
     assert ai.projectName in html
-    assert "Likely feasible" in html
+    assert "Feasible with conditions" in html
     assert DISCLAIMER in html
     assert result.versions.assumptionSet in html
     assert "No vendor candidates" in html  # empty vendor list handled gracefully
@@ -115,4 +118,5 @@ def test_render_html_is_deterministic() -> None:
 def test_render_html_includes_citation_text() -> None:
     ai, result = _build_golden_result()
     html = render_html(result, ai.projectName, "2026-07-28T12:00:00Z")
-    assert "DNERA" in html  # citation authority name surfaced
+    assert "Egyptian Electric Utility" in html  # real citation authority surfaced
+    assert "EEAA" in html

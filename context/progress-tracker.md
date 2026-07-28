@@ -61,6 +61,71 @@ Update whenever the phase, active module, scope, or implementation state changes
 - Verified live in a real browser (claude-in-chrome click-through): server starts clean, form submits, full pipeline runs and renders correctly across all 6 tabs with real numbers. **Bug caught and fixed:** metric-card values were wrapping mid-digit ("1,167,89" / "1 EGP") at narrow column widths — fixed with `word-break: keep-all` CSS plus a `fmt_egp_short`/`fmt_kwh_short` abbreviation helper (e.g. "1.17M EGP") so cards never break mid-number.
 - Added `streamlit` to requirements.txt; refreshed requirements.lock.txt (159 lines). Updated README (GROQ_API_KEY, not the stale OPENAI_API_KEY; documented `streamlit run app.py`).
 
+## Real-data integration pass (major update)
+
+User supplied real research (official Egyptian tariff table, real EgyptERA circular
+summaries, real bank solar-loan products) plus a real WDPA protected-areas download.
+Replaced most of the previously-synthetic/DEMO regulatory, GIS, and financial data:
+
+- **`data/assumptions.json`**: `tariff_retail_egp_per_kwh` → 2.55 EGP/kWh (official medium-voltage
+  22-11kV bracket, matches golden case's 22kV connection). `capex_per_kw_egp` → 10,000 EGP/kW
+  (real market range, down from a 32,000 guess — MARKET_RANGE, consumer/commercial sourced,
+  not a verified industrial quote). `financing_rate_pct`/`financing_term_years` → 20%/7yr
+  (Credit Agricole Egypt real solar-loan product). `financing_fees_pct` → 1% (CIB's real fee
+  schedule). `down_payment_pct` → tried 0% (Credit Agricole's 100%-financing product) but
+  that produces a degenerate near-zero-equity IRR (869%, mathematically correct but not
+  presentable) — switched to 20% (QNB Egypt Green Loan's real 80%-financing product) on
+  user's call, giving a sane finance IRR (79%) while staying a real cited product.
+- **`data/regulations/excerpts.json` + `rules.json`**: replaced the fictional "DNERA"
+  placeholder entirely with real citations — EgyptERA Circular No. 3/2023 (self-consumption
+  core rules + permit/licence thresholds), Circular No. 6/2023 (site-control amendment),
+  Circular No. 4/2026 (net-metering capacity/process), Renewable Energy Law No. 203/2014,
+  Protected Areas Law No. 102/1983, Environmental Law No. 4/1994 + EEAA guidance. Excerpt text
+  is explicitly labeled as a **paraphrased research summary**, not a verbatim legal quote (I
+  did not read the primary circular PDFs directly). Rewrote from 5 fake rules to 8 real ones
+  with real thresholds: 30MW self-consumption cap, 500kW permit-exemption tier, 20MW
+  net-metering ceiling, 25-year site-control requirement, real published net-metering
+  timeline (22-395 days), and a new always-on rule requiring EEAA environmental-impact
+  assessment for any industrial project (this is genuinely always required per real research
+  — residential exemption doesn't apply to industrial).
+- **`data/zones.geojson`**: merged in all **47 real Egyptian protected areas** from the WDPA/WDOECM
+  (UNEP-WCMC/IUCN) download the user provided (via `pyogrio`, installed temporarily — NOT
+  added to requirements.txt, since it's a one-time author-side data-prep tool, not a runtime
+  dependency, keeping the shipped project GDAL-free per the original architecture decision).
+  Also pulled **real OpenStreetMap data via the Overpass API** for the 10th of Ramadan City
+  area: unioned 40 real `landuse=industrial` sector polygons into the real industrial-zone
+  boundary, picked the nearest real named road (طريق الإسماعيلية / Ismailia Road) and nearest
+  2 real `power=substation` features. Kept exactly one clearly-labeled SYNTHETIC demo
+  protected-area polygon (the real nearest WDPA site is ~45km from the golden site) solely so
+  the interactive "protected area" scenario preset still has something to demonstrate against.
+  6th of October zone remains a synthetic placeholder (out of scope for this pass).
+- **`data/golden_case.json`**: nudged the site coordinates (30.3009,31.7411 → 30.3203,31.7466)
+  to sit genuinely inside the real OSM-mapped industrial zone (verified via `.contains()`)
+  instead of ~1.4km outside it — same conceptual location ("a factory in 10th of Ramadan
+  City"), now grounded in real geometry. `industrialZone`/`address` updated to name the real
+  sector ("Industrial Zone C6 / المنطقة الصناعية ج6").
+
+**Real-data-driven behavior changes (expected, not bugs):**
+- Golden case's recommended capacity is now **500 kW = the full roof** (binding constraint
+  `roof_area`, not `economic_optimum`) — real capex is ~3x cheaper than the old guess, so for
+  this factory's high consumption, maxing the roof is genuinely the NPV-optimal choice. The
+  "doesn't just pick the largest size" mechanism is still proven correct by
+  `test_optimization.py::test_not_largest_when_load_is_small` and by the Streamlit app's
+  "oversized roof" preset (which settles at 775 kW, well under its ~3,333 kW physical max).
+- Financials got dramatically better with real, cheaper capex: cash payback ~2.7y (was 8.2y),
+  NPV P10-P90 all positive (10.7M-20.6M EGP), 100% probability of meeting the 6-year target.
+- Golden case's overall status shifted from `likely_feasible` to **`feasible_with_conditions`**
+  — because a real Egyptian industrial project always needs EEAA environmental sign-off
+  (RULE-008), which the old fake rule set didn't capture. This is a real, honest condition,
+  not a regression.
+- Updated all affected tests (`test_gis.py`, `test_regulatory.py`, `test_feasibility.py`,
+  `test_report.py`, `test_optimization.py`'s budget test which had capex hardcoded in a
+  comment) to match the new real thresholds/behavior. **100/100 tests still pass** (98
+  offline + 2 live).
+- Re-executed `gadded.ipynb` end to end (0 errors) and rebuilt `docs/gadded.pdf` (now 6
+  pages, 86KB) with all the new real numbers and an updated narrative explaining the
+  roof-bound/feasible-with-conditions results honestly.
+
 ## Remaining (optional, time-permitting)
 
 - `rfq.py` (RFQ generation, spec module 29) — `report.py` already covers the graded-deliverable surface; not required for submission.

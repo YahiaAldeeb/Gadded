@@ -4,11 +4,11 @@
   "projectType": "industrial_rooftop",
   "connectionModel": "self_consumption",
   "location": {
-    "latitude": 30.3009,
-    "longitude": 31.7411,
-    "address": "10th of Ramadan City industrial zone, Egypt",
+    "latitude": 30.3203,
+    "longitude": 31.7466,
+    "address": "Industrial Zone C6 (المنطقة الصناعية ج6), 10th of Ramadan City, Egypt",
     "governorate": "Sharqia",
-    "industrialZone": "10th of Ramadan City"
+    "industrialZone": "10th of Ramadan City - Industrial Zone C6"
   },
   "factory": {
     "sector": "food_processing",

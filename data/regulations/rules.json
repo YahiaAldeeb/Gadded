@@ -1,62 +1,135 @@
 {
   "manifest": {
-    "id": "gadded-regulatory-rules-0.1.0",
+    "id": "gadded-regulatory-rules-0.2.0",
     "effectiveDate": "2026-07-28",
-    "notes": "Deterministic rules derived from data/regulations/excerpts.json. Condition nodes are a small safe DSL (no eval of stored code): {all:[...]} / {any:[...]} / {not:node} / {field, op, value}. Valid ops: eq, ne, in, not_in, gt, gte, lt, lte, contains. Evaluated against a fixed context: connectionModel, ownershipStatus, recommended_capacity_kw, gis_codes (set of GisFinding.code present)."
+    "notes": "Deterministic rules derived from data/regulations/excerpts.json (real EgyptERA circulars and Egyptian law, paraphrased research summary - see excerpts.json manifest caveat). Condition nodes are a small safe DSL (no eval of stored code): {all:[...]} / {any:[...]} / {not:node} / {field, op, value}. Valid ops: eq, ne, in, not_in, gt, gte, lt, lte, contains. Evaluated against a fixed context: connectionModel, ownershipStatus, recommended_capacity_kw, gis_codes (set of GisFinding.code present). Rules are mutually exclusive within each connection model by design (capacity/ownership bands do not overlap) so at most one capacity-band finding fires per connection model."
   },
   "rules": [
     {
       "ruleId": "RULE-001",
-      "title": "Self-consumption rooftop solar is a supported connection path",
-      "effectiveDate": "2025-04-01",
+      "title": "Site control (ownership/lease/right-of-use) not confirmed",
+      "effectiveDate": "2023-01-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": null,
+      "status": "ACTIVE",
+      "condition": {
+        "field": "ownershipStatus", "op": "in", "value": ["unknown", "rented_unknown"]
+      },
+      "conclusion": "requires_review",
+      "severity": "warning",
+      "title_template": "Site control must be confirmed before connection approval",
+      "explanation_template": "EgyptERA requires the applicant to demonstrate site control before connection approval: ownership, or a lease/right-of-use agreement covering the installation site for at least 25 years, expressly authorizing installation and operation of the solar plant. This has not been confirmed for this assessment.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
+      "requiredDocuments": ["Ownership deed, or lease/right-of-use agreement covering at least 25 years and expressly authorizing the solar installation"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-003"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-002",
+      "title": "Self-consumption up to 500 kW: permit/licence-exempt tier",
+      "effectiveDate": "2023-01-01",
       "projectType": "industrial_rooftop",
       "connectionModel": "self_consumption",
       "status": "ACTIVE",
       "condition": {
         "all": [
           {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
-          {"field": "ownershipStatus", "op": "in", "value": ["owned", "rented_authorized"]}
+          {"field": "ownershipStatus", "op": "in", "value": ["owned", "rented_authorized"]},
+          {"field": "recommended_capacity_kw", "op": "lte", "value": 500}
         ]
       },
       "conclusion": "applicable",
       "severity": "info",
-      "title_template": "Self-consumption connection is supported for this site",
-      "explanation_template": "Self-consumption solar is permitted for industrial facilities without a generation-capacity limit on export, since the system does not export to the grid. Roof ownership/authorization is confirmed for this assessment.",
-      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
-      "requiredDocuments": ["Proof of roof ownership or landlord authorization letter"],
+      "title_template": "Self-consumption connection is supported at this capacity",
+      "explanation_template": "At this capacity (up to 500 kW) a subscriber-owned self-consumption plant may qualify for an exemption from the electricity-generation permit and licence. The plant must not export power to the grid and must be installed by an NREA-qualified company.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
+      "requiredDocuments": ["Recent electricity bill", "Single-line electrical diagram", "Equipment specifications and conformity certificates", "Approved site layout", "Building-law compliance declaration"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-001", "exc-002"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-003",
+      "title": "Self-consumption 500 kW-30 MW: permit and grid-impact study required",
+      "effectiveDate": "2023-01-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "self_consumption",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
+          {"field": "ownershipStatus", "op": "in", "value": ["owned", "rented_authorized"]},
+          {"field": "recommended_capacity_kw", "op": "gt", "value": 500},
+          {"field": "recommended_capacity_kw", "op": "lte", "value": 30000}
+        ]
+      },
+      "conclusion": "requires_review",
+      "severity": "warning",
+      "title_template": "Above 500 kW: EgyptERA permit, licence, and grid-impact study required",
+      "explanation_template": "Above 500 kW, self-consumption projects require an EgyptERA construction permit, an electricity-generation licence, and a grid-impact/network-impact study at the subscriber's cost, plus any network reinforcement identified by the distribution company. Capacity must also not exceed the facility's maximum recorded electrical demand from the preceding financial year.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
+      "requiredDocuments": ["Recent electricity bill", "Single-line electrical diagram", "Equipment specifications and conformity certificates", "Approved site layout", "Building-law compliance declaration", "EgyptERA construction permit application", "Grid-impact study"],
+      "dependencies": ["Grid-impact study before construction permit"],
+      "citationExcerptIds": ["exc-001", "exc-002"],
+      "confidence": "high",
+      "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-004",
+      "title": "Self-consumption capacity exceeds the 30 MW ceiling",
+      "effectiveDate": "2023-01-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": "self_consumption",
+      "status": "ACTIVE",
+      "condition": {
+        "all": [
+          {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
+          {"field": "recommended_capacity_kw", "op": "gt", "value": 30000}
+        ]
+      },
+      "conclusion": "not_applicable",
+      "severity": "critical",
+      "title_template": "Recommended capacity exceeds the self-consumption ceiling",
+      "explanation_template": "Self-consumption plant capacity is capped at 30 MW per subscriber. The recommended capacity exceeds this ceiling and cannot proceed as a standard self-consumption interconnection.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
+      "requiredDocuments": [],
       "dependencies": [],
       "citationExcerptIds": ["exc-001"],
       "confidence": "high",
       "estimatedDurationDays": null
     },
     {
-      "ruleId": "RULE-002",
-      "title": "Self-consumption connection needs ownership authorization on file",
-      "effectiveDate": "2025-04-01",
+      "ruleId": "RULE-005",
+      "title": "Net-metering capacity within the published scheme ceiling",
+      "effectiveDate": "2026-01-01",
       "projectType": "industrial_rooftop",
-      "connectionModel": "self_consumption",
+      "connectionModel": "net_metering",
       "status": "ACTIVE",
       "condition": {
         "all": [
-          {"field": "connectionModel", "op": "eq", "value": "self_consumption"},
-          {"field": "ownershipStatus", "op": "in", "value": ["rented_unknown", "unknown"]}
+          {"field": "connectionModel", "op": "eq", "value": "net_metering"},
+          {"field": "ownershipStatus", "op": "in", "value": ["owned", "rented_authorized"]},
+          {"field": "recommended_capacity_kw", "op": "lte", "value": 20000}
         ]
       },
-      "conclusion": "requires_review",
-      "severity": "warning",
-      "title_template": "Roof ownership/authorization must be confirmed before approval",
-      "explanation_template": "Self-consumption systems require the facility to hold roof ownership or written landlord authorization before the distribution company grants connection approval. This has not been confirmed for this assessment.",
-      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
-      "requiredDocuments": ["Roof ownership deed or landlord authorization letter"],
+      "conclusion": "applicable",
+      "severity": "info",
+      "title_template": "Net-metering connection is within the published capacity band",
+      "explanation_template": "The recommended capacity is within the 20 MW net-metering scheme ceiling, though connection still depends on capacity available on the local distribution network. The published process includes NREA local-content review (~15 days), distribution-company capacity confirmation (~1 week), construction (up to 6 months for plants up to 500 kW, up to 1 year for larger plants), testing (~3 weeks), and energization (~3 weeks). At least 25% local content is required, reviewed through the NREA PV-HUB process.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
+      "requiredDocuments": ["NREA local-content review", "Technical interconnection file", "Study-fee payment"],
       "dependencies": [],
-      "citationExcerptIds": ["exc-001"],
-      "confidence": "medium",
-      "estimatedDurationDays": null
+      "citationExcerptIds": ["exc-004", "exc-005"],
+      "confidence": "high",
+      "estimatedDurationDays": {"minimum": 22, "maximum": 395, "basis": "published"}
     },
     {
-      "ruleId": "RULE-003",
-      "title": "Net-metering capacity exceeds the program threshold",
-      "effectiveDate": "2025-06-01",
+      "ruleId": "RULE-006",
+      "title": "Net-metering capacity exceeds the published scheme ceiling",
+      "effectiveDate": "2026-01-01",
       "projectType": "industrial_rooftop",
       "connectionModel": "net_metering",
       "status": "ACTIVE",
@@ -68,43 +141,19 @@
       },
       "conclusion": "not_applicable",
       "severity": "critical",
-      "title_template": "Recommended capacity exceeds the net-metering threshold",
-      "explanation_template": "The net-metering program covers systems up to 20,000 kW per site. The recommended capacity exceeds this threshold and would need to apply under the separate independent-power-producer program instead.",
-      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
+      "title_template": "Recommended capacity exceeds the net-metering scheme ceiling",
+      "explanation_template": "The published net-metering procedures cover projects up to 20 MW, subject to available distribution-network capacity. The recommended capacity exceeds this scheme ceiling.",
+      "authority": "Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA)",
       "requiredDocuments": [],
-      "dependencies": ["Independent-power-producer program application"],
-      "citationExcerptIds": ["exc-002"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-004"],
       "confidence": "high",
       "estimatedDurationDays": null
     },
     {
-      "ruleId": "RULE-004",
-      "title": "Net-metering capacity within the program threshold",
-      "effectiveDate": "2025-06-01",
-      "projectType": "industrial_rooftop",
-      "connectionModel": "net_metering",
-      "status": "ACTIVE",
-      "condition": {
-        "all": [
-          {"field": "connectionModel", "op": "eq", "value": "net_metering"},
-          {"field": "recommended_capacity_kw", "op": "lte", "value": 20000}
-        ]
-      },
-      "conclusion": "applicable",
-      "severity": "info",
-      "title_template": "Net-metering connection is supported for this capacity",
-      "explanation_template": "The recommended capacity is within the 20,000 kW net-metering threshold. A technical interconnection study is required before energization, typically 30-60 business days.",
-      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
-      "requiredDocuments": ["Technical interconnection study application"],
-      "dependencies": [],
-      "citationExcerptIds": ["exc-002"],
-      "confidence": "high",
-      "estimatedDurationDays": {"minimum": 30, "maximum": 60, "basis": "published"}
-    },
-    {
-      "ruleId": "RULE-005",
-      "title": "Protected-area intersection requires environmental clearance",
-      "effectiveDate": "2025-01-01",
+      "ruleId": "RULE-007",
+      "title": "Site intersects a protected area",
+      "effectiveDate": "1983-01-01",
       "projectType": "industrial_rooftop",
       "connectionModel": null,
       "status": "ACTIVE",
@@ -113,14 +162,35 @@
       },
       "conclusion": "requires_review",
       "severity": "critical",
-      "title_template": "Site intersects a protected area; environmental clearance required",
-      "explanation_template": "The site intersects a designated protected area in the loaded GIS layer. An environmental impact assessment and written clearance from the environmental authority are required before any construction permit may be issued.",
-      "authority": "Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder",
-      "requiredDocuments": ["Environmental impact assessment", "Environmental authority clearance"],
-      "dependencies": ["Environmental clearance before construction permit"],
-      "citationExcerptIds": ["exc-003"],
+      "title_template": "Site intersects a protected area; separate activity permit likely required",
+      "explanation_template": "The site intersects a declared protected area in the loaded GIS layer. Constructing facilities or undertaking industrial activity inside a protected area requires approval from the competent environmental authority; confirm with the EEAA Nature Conservation Sector whether a separate protected-area activity permit is required.",
+      "authority": "Egyptian Environmental Affairs Agency (EEAA), under Protected Areas Law No. 102 of 1983",
+      "requiredDocuments": ["EEAA Nature Conservation Sector confirmation", "Protected-area activity permit (if required)"],
+      "dependencies": ["Protected-area permit before construction"],
+      "citationExcerptIds": ["exc-006"],
       "confidence": "high",
       "estimatedDurationDays": null
+    },
+    {
+      "ruleId": "RULE-008",
+      "title": "Environmental-impact assessment required for industrial solar",
+      "effectiveDate": "1994-01-01",
+      "projectType": "industrial_rooftop",
+      "connectionModel": null,
+      "status": "ACTIVE",
+      "condition": {
+        "field": "connectionModel", "op": "in", "value": ["self_consumption", "net_metering"]
+      },
+      "conclusion": "requires_review",
+      "severity": "warning",
+      "title_template": "EEAA environmental-impact assessment required",
+      "explanation_template": "Industrial solar installations require EEAA environmental review before construction or operation; the residential exemption does not apply. Compact solar installations are typically handled as a Category B project (commonly reviewed within about 30 days), though the final classification depends on plant capacity, location, and environmental sensitivity.",
+      "authority": "Egyptian Environmental Affairs Agency (EEAA)",
+      "requiredDocuments": ["Environmental-impact assessment approval from EEAA"],
+      "dependencies": [],
+      "citationExcerptIds": ["exc-007"],
+      "confidence": "medium",
+      "estimatedDurationDays": {"minimum": 30, "maximum": 30, "basis": "published"}
     }
   ]
 }

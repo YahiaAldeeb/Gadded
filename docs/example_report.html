@@ -26,23 +26,23 @@
 <body>
 
 <h1>10th of Ramadan Food Processing Rooftop Solar</h1>
-<p class="muted">Run run-20260728T114951 · Assessment gadded-golden-001 · Generated 2026-07-28T11:49:51.594247+00:00</p>
-<p><span class="status status-likely_feasible">Likely feasible</span></p>
+<p class="muted">Run run-20260728T135921 · Assessment gadded-golden-001 · Generated 2026-07-28T13:59:21.918497+00:00</p>
+<p><span class="status status-feasible_with_conditions">Feasible with conditions</span></p>
 
 <div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
 
 <h2>Technical recommendation</h2>
 <table>
-  <tr><th>Recommended capacity</th><td>350 kW
+  <tr><th>Recommended capacity</th><td>500 kW
       (physical roof maximum: 500 kW)</td></tr>
-  <tr><th>Annual PV generation</th><td>611,950 kWh</td></tr>
+  <tr><th>Annual PV generation</th><td>874,214 kWh</td></tr>
   <tr><th>Annual factory load</th><td>1,963,000 kWh</td></tr>
-  <tr><th>Self-consumption ratio</th><td>95.4%</td></tr>
-  <tr><th>Self-sufficiency ratio</th><td>29.7%</td></tr>
-  <tr><th>Imported / exported energy</th><td>1,379,134 kWh
-      imported / 28,085 kWh exported</td></tr>
-  <tr><th>Roof area required</th><td>2100 m²</td></tr>
-  <tr><th>Binding constraint</th><td>economic_optimum</td></tr>
+  <tr><th>Self-consumption ratio</th><td>90.0%</td></tr>
+  <tr><th>Self-sufficiency ratio</th><td>40.1%</td></tr>
+  <tr><th>Imported / exported energy</th><td>1,176,037 kWh
+      imported / 87,252 kWh exported</td></tr>
+  <tr><th>Roof area required</th><td>3000 m²</td></tr>
+  <tr><th>Binding constraint</th><td>roof_area</td></tr>
   <tr><th>Sizing objective</th><td><code>npv</code>
       over 20 evaluated candidate sizes</td></tr>
 </table>
@@ -54,24 +54,24 @@
   
   <tr>
     <td>cash</td>
-    <td>11,200,000 EGP</td>
-    <td>1,167,891 EGP</td>
-    <td>2,137,051 EGP</td>
-    <td>14.1%</td>
-    <td>8.0 yr</td>
-    <td>17.2 yr</td>
+    <td>5,000,000 EGP</td>
+    <td>1,756,755 EGP</td>
+    <td>15,020,574 EGP</td>
+    <td>40.1%</td>
+    <td>2.7 yr</td>
+    <td>3.4 yr</td>
     <td>n/a</td>
   </tr>
   
   <tr>
     <td>finance</td>
-    <td>11,200,000 EGP</td>
-    <td>1,167,891 EGP</td>
-    <td>671,701 EGP</td>
-    <td>12.9%</td>
-    <td>11.8 yr</td>
-    <td>22.1 yr</td>
-    <td>188,320 EGP</td>
+    <td>5,000,000 EGP</td>
+    <td>1,756,755 EGP</td>
+    <td>14,106,077 EGP</td>
+    <td>79.0%</td>
+    <td>1.5 yr</td>
+    <td>1.7 yr</td>
+    <td>88,825 EGP</td>
   </tr>
   
 </table>
@@ -82,28 +82,28 @@ general inflation adjustment, inverter replacement, and residual value.</p>
 <table>
   <tr><th></th><th>P10</th><th>P50 (median)</th><th>P90</th></tr>
   <tr><th>NPV (EGP)</th>
-      <td>-1,001,942</td>
-      <td>2,041,949</td>
-      <td>6,067,977</td></tr>
+      <td>10,735,896</td>
+      <td>14,844,303</td>
+      <td>20,642,210</td></tr>
   <tr><th>Payback (years)</th>
-      <td>7.0</td>
-      <td>8.0</td>
-      <td>9.4</td></tr>
+      <td>2.4</td>
+      <td>2.7</td>
+      <td>3.1</td></tr>
 </table>
 
-<p>Probability of meeting the target payback: <strong>0.4%</strong></p>
+<p>Probability of meeting the target payback: <strong>100.0%</strong></p>
 
 <h3>Top sensitivity drivers</h3>
 <table>
   <tr><th>Variable</th><th>Relative influence</th></tr>
   
-  <tr><td>tariff_escalation</td><td>57%</td></tr>
+  <tr><td>tariff_escalation</td><td>68%</td></tr>
   
-  <tr><td>capex</td><td>23%</td></tr>
+  <tr><td>pv_yield</td><td>18%</td></tr>
   
-  <tr><td>pv_yield</td><td>15%</td></tr>
+  <tr><td>capex</td><td>8%</td></tr>
   
-  <tr><td>opex</td><td>4%</td></tr>
+  <tr><td>opex</td><td>5%</td></tr>
   
 </table>
 
@@ -114,9 +114,9 @@ general inflation adjustment, inverter replacement, and residual value.</p>
   <tr>
     <td>industrial_zone</td>
     <td class="info">info</td>
-    <td>Site is inside 10th of Ramadan City Industrial Zone</td>
-    <td>10th of Ramadan City Industrial Zone</td>
-    <td class="muted">hand-drawn approximation for Gadded PoC</td>
+    <td>Site is inside 10th of Ramadan City Industrial Zone (OpenStreetMap sectors)</td>
+    <td>10th of Ramadan City Industrial Zone (OpenStreetMap sectors)</td>
+    <td class="muted">OpenStreetMap (via Overpass API), landuse=industrial ways, 10th of Ramadan City</td>
   </tr>
   
   <tr>
@@ -130,17 +130,17 @@ general inflation adjustment, inverter replacement, and residual value.</p>
   <tr>
     <td>substation_distance</td>
     <td class="info">info</td>
-    <td>Nearest mapped substation: Demo substation proxy A</td>
-    <td>968.5 m</td>
-    <td class="muted">illustrative point, not verified grid data</td>
+    <td>Nearest mapped substation: OSM power=substation (way 123870405)</td>
+    <td>3361.1 m</td>
+    <td class="muted">OpenStreetMap (via Overpass API), power=substation</td>
   </tr>
   
   <tr>
     <td>road_distance</td>
     <td class="info">info</td>
-    <td>Nearest mapped road: Demo main access road, 10th of Ramadan</td>
-    <td>66.8 m</td>
-    <td class="muted">illustrative line, not sourced from OpenStreetMap</td>
+    <td>Nearest mapped road: طريق الإسماعيلية</td>
+    <td>5808.4 m</td>
+    <td class="muted">OpenStreetMap (via Overpass API), highway=trunk/primary</td>
   </tr>
   
 </table>
@@ -148,14 +148,31 @@ general inflation adjustment, inverter replacement, and residual value.</p>
 <h2>Regulatory findings</h2>
 
 <table>
-  <tr><th>Self-consumption connection is supported for this site</th><td class="info">
+  <tr><th>Self-consumption connection is supported at this capacity</th><td class="info">
       applicable · info · confidence high</td></tr>
-  <tr><td colspan="2">Self-consumption solar is permitted for industrial facilities without a generation-capacity limit on export, since the system does not export to the grid. Roof ownership/authorization is confirmed for this assessment.</td></tr>
-  <tr><th>Required documents</th><td>Proof of roof ownership or landlord authorization letter</td></tr>
+  <tr><td colspan="2">At this capacity (up to 500 kW) a subscriber-owned self-consumption plant may qualify for an exemption from the electricity-generation permit and licence. The plant must not export power to the grid and must be installed by an NREA-qualified company.</td></tr>
+  <tr><th>Required documents</th><td>Recent electricity bill, Single-line electrical diagram, Equipment specifications and conformity certificates, Approved site layout, Building-law compliance declaration</td></tr>
   
   <tr><th>Citations</th><td>
     
-      Demo National Electricity Regulatory Authority (DNERA) — fictional placeholder — <em>Illustrative Distributed Generation Rules for Industrial Facilities</em>, §3.2 (effective 2025-04-01)<br>
+      Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA) — <em>EgyptERA Circular No. 3 of 2023 (self-consumption solar generation)</em>, §core self-consumption rules (effective 2023-01-01)<br>
+    
+      Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA) — <em>EgyptERA Circular No. 3 of 2023 (self-consumption permit and licence thresholds)</em>, §permit and licence thresholds (effective 2023-01-01)<br>
+    
+  </td></tr>
+  
+  <tr><td colspan="2" class="muted">Verification required: yes</td></tr>
+</table>
+
+<table>
+  <tr><th>EEAA environmental-impact assessment required</th><td class="warn">
+      requires_review · warning · confidence medium</td></tr>
+  <tr><td colspan="2">Industrial solar installations require EEAA environmental review before construction or operation; the residential exemption does not apply. Compact solar installations are typically handled as a Category B project (commonly reviewed within about 30 days), though the final classification depends on plant capacity, location, and environmental sensitivity.</td></tr>
+  <tr><th>Required documents</th><td>Environmental-impact assessment approval from EEAA</td></tr>
+  
+  <tr><th>Citations</th><td>
+    
+      Egyptian Environmental Affairs Agency (EEAA), under Environmental Law No. 4 of 1994 — <em>Environmental Law No. 4 of 1994 (executive regulations) and EEAA environmental-impact-assessment guidance</em>, §environmental-impact assessment for industrial solar (effective 1994-01-01)<br>
     
   </td></tr>
   
@@ -182,7 +199,7 @@ independent of the technical/financial result above and can be re-run separately
 
 
 <h2>Warnings</h2>
-<ul><li class="warn">ML load profile: KMeans clustering + RandomForest classifier trained on a synthetic facility population (see load_ml.py); not measured interval data.</li><li class="warn">search failed for query 'Egyptian commercial and industrial solar EPC company rooftop installation 10th of Ramadan City industrial zone, Egypt': APIStatusError</li><li class="warn">search failed for query 'solar EPC company Egypt industrial rooftop 350 kW project reference': APIStatusError</li></ul>
+<ul><li class="warn">ML load profile: KMeans clustering + RandomForest classifier trained on a synthetic facility population (see load_ml.py); not measured interval data.</li><li class="warn">search failed for query 'Egyptian commercial and industrial solar EPC company rooftop installation Industrial Zone C6 (المنطقة الصناعية ج6), 10th of Ramadan City, Egypt': APIStatusError</li><li class="warn">search failed for query 'solar EPC company Egypt industrial rooftop 500 kW project reference': APIStatusError</li><li class="warn">search failed for query 'commercial solar installer Egypt self consumption rooftop': APIStatusError</li><li class="warn">no search evidence available; vendor discovery skipped</li></ul>
 
 
 <div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
