@@ -150,6 +150,41 @@ def test_condition_dsl_rejects_unknown_operator() -> None:
 
 
 @pytest.mark.skipif(not os.environ.get("GROQ_API_KEY"), reason="no GROQ_API_KEY set")
+def test_llm_retrieval_ranks_relevant_excerpts_live() -> None:
+    from dotenv import load_dotenv
+    from openai import OpenAI
+
+    load_dotenv()
+    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
+
+    corpus = _corpus()
+    top = retrieve(
+        "roof lease right of use 25 years site control", corpus, top_k=1, client=client
+    )
+    assert top[0][0]["id"] == "exc-003"
+
+    top = retrieve(
+        "net metering capacity threshold local content", corpus, top_k=1, client=client
+    )
+    assert top[0][0]["id"] in ("exc-004", "exc-005")
+
+
+def test_llm_retrieval_falls_back_to_tfidf_on_client_failure() -> None:
+    class _BrokenClient:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    raise RuntimeError("simulated API failure")
+
+    corpus = _corpus()
+    top = retrieve(
+        "roof lease right of use 25 years site control", corpus, top_k=1, client=_BrokenClient()
+    )
+    assert top[0][0]["id"] == "exc-003"
+
+
+@pytest.mark.skipif(not os.environ.get("GROQ_API_KEY"), reason="no GROQ_API_KEY set")
 def test_llm_explanation_is_grounded_live() -> None:
     from dotenv import load_dotenv
     from openai import OpenAI

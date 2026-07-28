@@ -176,3 +176,12 @@ Replaced most of the previously-synthetic/DEMO regulatory, GIS, and financial da
 ## Notes
 
 - No application code implemented yet at the time of this pivot.
+
+## 2026-07-29 — Regulatory retrieval swapped to LLM RAG
+
+- `regulatory.retrieve()` now scores excerpt relevance via Groq LLM (JSON-scored, `reasoning_effort="low"`) when a `client` is passed; falls back to TF-IDF cosine automatically on missing client or any API failure (`_retrieve_tfidf` kept as-is). No `client` passed → TF-IDF, same as before.
+- `app.py` and `gadded.ipynb` (cell 26) now build the Groq client before calling `retrieve(..., client=client)`.
+- Added live test `test_llm_retrieval_ranks_relevant_excerpts_live` + offline `test_llm_retrieval_falls_back_to_tfidf_on_client_failure` to `tests/test_regulatory.py`. Full suite: 102/102 pass.
+- Notebook re-executed end-to-end, 0 errors; regulatory LLM explanation cell confirmed grounded output using the new retrieval path.
+- Deterministic rule engine (`evaluate_rules`) and feasibility waterfall untouched — LLM still never decides status, only retrieves context.
+- Plan doc: `context/rag-system-implementation-plan.md`.

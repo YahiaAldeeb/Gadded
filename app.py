@@ -561,7 +561,7 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
             try:
                 from gadded.regulatory import explain_with_llm
                 question = "Can this factory install this rooftop solar system under the selected connection model?"
-                retrieved = retrieve(question, corpus, top_k=2)
+                retrieved = retrieve(question, corpus, top_k=2, client=client)
                 reg_explanation = explain_with_llm(question, retrieved, reg_findings, client)
             except Exception as e:
                 reg_error = f"Regulatory explanation unavailable this run ({type(e).__name__})."
