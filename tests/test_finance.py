@@ -94,3 +94,25 @@ def test_build_scenarios_respects_preference() -> None:
     assert len(build_scenarios(475, 1_900_000, a, "cash")) == 1
     assert len(build_scenarios(475, 1_900_000, a, "finance")) == 1
     assert len(build_scenarios(475, 1_900_000, a, "compare")) == 2
+
+
+def test_finance_scenario_override_changes_result_and_records_source() -> None:
+    a = _assumptions()
+    default = finance_scenario(475, 1_900_000, a)
+    overridden = finance_scenario(
+        475, 1_900_000, a,
+        financing_rate_pct=15.0,
+        financing_term_years=10,
+        down_payment_pct=0.0,
+        financing_fees_pct=0.5,
+        financing_label="Test Bank — Test Loan",
+    )
+    assert overridden.assumptions["financing_rate_pct"] == 15.0
+    assert overridden.assumptions["financing_term_years"] == 10
+    assert overridden.assumptions["down_payment_pct"] == 0.0
+    assert overridden.assumptions["financing_fees_pct"] == 0.5
+    assert overridden.assumptions["financing_source"] == "Test Bank — Test Loan"
+    assert overridden.npvEgp != default.npvEgp
+    # default (no overrides) still falls back to the assumptions.json bank product
+    assert default.assumptions["financing_rate_pct"] == a.number("financing_rate_pct")
+    assert "financing_source" not in default.assumptions

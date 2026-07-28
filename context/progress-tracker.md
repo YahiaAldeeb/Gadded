@@ -185,3 +185,48 @@ Replaced most of the previously-synthetic/DEMO regulatory, GIS, and financial da
 - Notebook re-executed end-to-end, 0 errors; regulatory LLM explanation cell confirmed grounded output using the new retrieval path.
 - Deterministic rule engine (`evaluate_rules`) and feasibility waterfall untouched — LLM still never decides status, only retrieves context.
 - Plan doc: `context/rag-system-implementation-plan.md`.
+
+## 2026-07-29 — LLM provider swapped Groq -> hybrid Gemini + Groq
+
+- Motivation: Groq's free-tier daily token cap (500k TPD, shared across `openai/gpt-oss-120b`
+  and `groq/compound`) was fully exhausted mid-session from normal testing volume.
+- New shared module `src/gadded/_llm.py`: `gemini_json_call`, `gemini_text_call`,
+  `gemini_grounded_search` — thin wrappers around `google-genai`'s `client.models.generate_content`,
+  used by `regulatory.py`, `vendors.py`, `financing.py`. All three return `None` on any
+  failure (never raise), matching the existing fail-soft convention.
+- `regulatory.py` (`retrieve()`'s LLM path, `explain_with_llm()`) fully moved to Gemini
+  (`gemini-flash-latest`). Verified live: real grounded regulatory explanation, correct
+  excerpt ranking.
+- `vendors.py` / `financing.py` stayed **two-provider hybrid**: search stage still Groq
+  `groq/compound` (real web search), extraction stage moved to Gemini (JSON mode).
+  Reason: Gemini's own Google Search grounding tool 429s permanently on an unbilled API
+  key — confirmed via the AI Studio rate-limit dashboard (Gemini 3 family: 0/0 free
+  grounding quota; Gemini 2.5 family: 1.5K RPD free, but apparently gated behind billing
+  regardless). `discover_vendors()` / `discover_financing_options()` signatures changed:
+  now take `(search_client, extraction_client)` instead of one shared `client`.
+- Gotchas hit and fixed (documented in `.env.example`):
+  - Pinned model ids (`gemini-2.5-flash`, `gemini-2.5-flash-lite`) 404 with "no longer
+    available to new users" depending on API key/project age — use the `gemini-flash-latest`
+    alias instead.
+  - Thinking cannot be disabled on this tier (`thinking_config(thinking_budget=0)` →
+    400 INVALID_ARGUMENT); hidden reasoning tokens eat `max_output_tokens`, so every
+    call now budgets generously (800→3000 for retrieval scoring, 400→1500 for
+    explanation, 2000→6000 for vendor/financing extraction) instead of disabling thinking.
+  - Free tier is capped at 5 requests/minute per model — trivial to blow through while
+    manually testing; real app usage (≈10 sequential calls per "Run Assessment") should
+    generally spread past this via normal network latency, but back-to-back scripted
+    calls need explicit pacing.
+- `app.py`: `get_gemini_client()` (regulatory + extraction) and `get_groq_client()`
+  (search only) both present; `run_pipeline()` builds both and passes them to the right
+  stage. Checkbox copy updated to mention both providers.
+- `gadded.ipynb`: regulatory cells fully on Gemini; vendor-discovery cell builds both
+  clients. Re-executed end-to-end, 0 errors.
+- Tests: `tests/test_regulatory.py`, `test_vendors.py`, `test_financing.py` rewritten
+  with separate Gemini-shaped and Groq-shaped fake clients matching the real call
+  shapes. 4 live tests all pass; note the vendor/financing live tests are a weak
+  end-to-end check on days Groq's daily quota is already spent (assertions are
+  structural, not "non-empty"), so a bare pass there doesn't by itself prove the search
+  stage produced real results that day — verified manually with real output instead.
+  Full suite: 112 passed / 0 failed offline, 4/4 live passed with both keys present.
+- `requirements.txt`/`requirements.lock.txt`: added `google-genai`, kept `openai` (still
+  needed for the Groq client).

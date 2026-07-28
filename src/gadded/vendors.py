@@ -1,14 +1,17 @@
-"""Evidence-grounded EPC vendor discovery via a two-stage Groq agent.
+"""Evidence-grounded EPC vendor discovery via a two-stage, two-provider agent.
 
-Stage 1 (search): ``groq/compound`` runs real server-side web search per query and
-returns structured results (title, url, content, score) in ``message.executed_tools``.
-This is the only stage that touches the network for evidence.
+Stage 1 (search): Groq's ``groq/compound`` runs real server-side web search per query
+and returns structured results (title, url, content, score) in
+``message.executed_tools``. This is the only stage that touches the network for
+evidence. (Gemini's Google Search grounding tool would do the same job, but it requires
+a billing-enabled Google Cloud project even on an otherwise-free API key — Groq's search
+stays reachable on a plain free key, so it's kept for this stage only.)
 
-Stage 2 (extraction): ``openai/gpt-oss-120b``, given ONLY the raw search results from
-stage 1, extracts strict ``VendorCandidate`` JSON. It may not invent a company, contact
-detail, certification, or quality ranking that isn't present in the provided text; any
-candidate the model returns without an evidence item, or that fails the Pydantic
-contract, is dropped rather than repaired.
+Stage 2 (extraction): a plain JSON-mode Gemini call, given ONLY the raw search results
+from stage 1, extracts strict ``VendorCandidate`` JSON. It may not invent a company,
+contact detail, certification, or quality ranking that isn't present in the provided
+text; any candidate the model returns without an evidence item, or that fails the
+Pydantic contract, is dropped rather than repaired.
 
 A failure in either stage returns an empty candidate list plus a warning — it never
 raises, so a vendor-search outage cannot invalidate the technical/financial results.
@@ -16,17 +19,16 @@ raises, so a vendor-search outage cannot invalidate the technical/financial resu
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime, timezone
 
 from pydantic import ValidationError
 
+from gadded._llm import DEFAULT_MODEL, gemini_json_call
 from gadded.contracts import VendorCandidate
 
 VENDOR_PROMPT_VERSION = "vendor-discovery-0.1.0"
 _SEARCH_MODEL_DEFAULT = "groq/compound"
-_EXTRACTION_MODEL_DEFAULT = "openai/gpt-oss-120b"
 
 _FORBIDDEN_CLAIMS = [
     "best", "most reliable", "highest quality", "licensed", "certified",
@@ -125,7 +127,7 @@ def extract_vendor_candidates(
     if not raw_pool:
         return [], ["no search evidence available; vendor discovery skipped"]
 
-    model = model or os.environ.get("GROQ_REASONING_MODEL", _EXTRACTION_MODEL_DEFAULT)
+    model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     evidence_block = "\n\n".join(
@@ -133,20 +135,11 @@ def extract_vendor_candidates(
         for i, r in enumerate(raw_pool)
     )
 
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            reasoning_effort="low",
-            max_tokens=2000,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": _EXTRACTION_INSTRUCTIONS},
-                {"role": "user", "content": f"Search results:\n\n{evidence_block}"},
-            ],
-        )
-        payload = json.loads(resp.choices[0].message.content)
-    except Exception as e:
-        return [], [f"vendor extraction failed: {type(e).__name__}"]
+    payload = gemini_json_call(
+        client, model, _EXTRACTION_INSTRUCTIONS, f"Search results:\n\n{evidence_block}", max_output_tokens=6000
+    )
+    if payload is None:
+        return [], ["vendor extraction failed"]
 
     raw_vendors = payload.get("vendors", [])
     seen_names: set[str] = set()
@@ -187,17 +180,22 @@ def discover_vendors(
     location: str,
     capacity_kw: float,
     connection_model: str,
-    client,
+    search_client,
+    extraction_client,
     services: list[str] | None = None,
     queries: list[str] | None = None,
     search_model: str | None = None,
     extraction_model: str | None = None,
     max_candidates: int = 5,
 ) -> tuple[list[VendorCandidate], list[str]]:
-    """Full vendor-discovery pipeline: search -> extract -> validate. Never raises."""
+    """Full vendor-discovery pipeline: search (Groq) -> extract (Gemini) -> validate.
+
+    Two separate clients because the two stages use two different providers — see the
+    module docstring for why. Never raises.
+    """
     queries = queries or _default_queries(location, capacity_kw, connection_model)
-    raw_pool, search_warnings = search_vendor_evidence(queries, client, model=search_model)
+    raw_pool, search_warnings = search_vendor_evidence(queries, search_client, model=search_model)
     candidates, extract_warnings = extract_vendor_candidates(
-        raw_pool, client, model=extraction_model, max_candidates=max_candidates
+        raw_pool, extraction_client, model=extraction_model, max_candidates=max_candidates
     )
     return candidates, [*search_warnings, *extract_warnings]

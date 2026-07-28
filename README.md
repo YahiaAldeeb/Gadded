@@ -21,9 +21,12 @@ python -m venv .venv
 pip install -r requirements.txt        # or requirements.lock.txt for pinned versions
 ```
 
-Copy `.env.example` to `.env` and set your key (needed only for the regulatory and vendor stages):
+Copy `.env.example` to `.env` and set your keys (needed only for the regulatory, vendor,
+and financing stages — Gemini for reasoning/extraction, Groq for the vendor/financing
+web search, since Gemini's own search grounding needs a billing-enabled project):
 
 ```
+GEMINI_API_KEY=...
 GROQ_API_KEY=gsk_...
 ```
 

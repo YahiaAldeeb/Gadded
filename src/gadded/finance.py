@@ -136,9 +136,23 @@ def cash_scenario(
 
 
 def finance_scenario(
-    capacity_kw: float, year1_savings: float, assumptions: AssumptionSet
+    capacity_kw: float,
+    year1_savings: float,
+    assumptions: AssumptionSet,
+    *,
+    financing_rate_pct: float | None = None,
+    financing_term_years: int | None = None,
+    down_payment_pct: float | None = None,
+    financing_fees_pct: float | None = None,
+    financing_label: str | None = None,
 ) -> FinancialScenario:
-    """Debt-financed purchase: down payment + amortizing loan."""
+    """Debt-financed purchase: down payment + amortizing loan.
+
+    By default uses the static bank-product numbers in `assumptions.json`. Pass the
+    `financing_*`/`down_payment_pct` overrides to price a specific discovered
+    `FinancingOption` instead (e.g. one the user picked from `financing.py` search
+    results) without changing any other assumption.
+    """
     n = int(assumptions.number("analysis_period_years"))
     disc = assumptions.number("discount_rate_pct") / 100.0
     esc = assumptions.number("tariff_escalation_pct") / 100.0
@@ -146,10 +160,20 @@ def finance_scenario(
     capex = capacity_kw * assumptions.number("capex_per_kw_egp")
     opex = capacity_kw * assumptions.number("opex_per_kw_year_egp")
 
-    down_pct = assumptions.number("down_payment_pct") / 100.0
-    fees_pct = assumptions.number("financing_fees_pct") / 100.0
-    rate = assumptions.number("financing_rate_pct")
-    term = int(assumptions.number("financing_term_years"))
+    down_payment_pct = (
+        down_payment_pct if down_payment_pct is not None else assumptions.number("down_payment_pct")
+    )
+    financing_fees_pct = (
+        financing_fees_pct
+        if financing_fees_pct is not None
+        else assumptions.number("financing_fees_pct")
+    )
+    rate = financing_rate_pct if financing_rate_pct is not None else assumptions.number("financing_rate_pct")
+    term = int(
+        financing_term_years if financing_term_years is not None else assumptions.number("financing_term_years")
+    )
+    down_pct = down_payment_pct / 100.0
+    fees_pct = financing_fees_pct / 100.0
 
     down_payment = capex * down_pct
     upfront_fees = capex * fees_pct
@@ -175,8 +199,9 @@ def finance_scenario(
             **_shared_assumptions(assumptions),
             "financing_rate_pct": rate,
             "financing_term_years": term,
-            "down_payment_pct": assumptions.number("down_payment_pct"),
-            "financing_fees_pct": assumptions.number("financing_fees_pct"),
+            "down_payment_pct": down_payment_pct,
+            "financing_fees_pct": financing_fees_pct,
+            **({"financing_source": financing_label} if financing_label else {}),
         },
     )
 

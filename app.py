@@ -22,7 +22,8 @@ load_dotenv(ROOT / ".env")
 
 from gadded.contracts import AssessmentInput, ResultVersions, load_assumptions
 from gadded.feasibility import resolve_feasibility
-from gadded.finance import build_scenarios
+from gadded.finance import build_scenarios, finance_scenario, savings_stream
+from gadded.financing import discover_financing_options
 from gadded.gis import load_zones, screen_site
 from gadded.load_ml import predict_load_ml, train_load_ml_model
 from gadded.regulatory import build_context, evaluate_rules, load_excerpts, load_rules, retrieve
@@ -359,6 +360,21 @@ def fmt_kwh_short(value: float) -> str:
     return _fmt_short(value, "kWh")
 
 
+def lifetime_savings_egp(scenario, assumptions) -> float:
+    """Undiscounted total net savings over the full analysis period for one scenario.
+
+    Plain-language "total money back" headline number. Reuses the exact
+    `savings_stream` cash-flow function the scenario itself was built from, so it is
+    always internally consistent with the scenario's own NPV/payback (just not
+    discounted — clearly labeled as such wherever it is shown).
+    """
+    n = int(assumptions.number("analysis_period_years"))
+    esc = assumptions.number("tariff_escalation_pct") / 100.0
+    deg = assumptions.number("degradation_pct_year") / 100.0
+    year1_gross = scenario.yearOneSavingsEgp + scenario.annualOpexEgp
+    return sum(savings_stream(year1_gross, scenario.annualOpexEgp, n, esc, deg))
+
+
 def section_banner(icon: str, title: str, subtitle: str) -> None:
     st.markdown(
         f"""
@@ -435,7 +451,16 @@ def get_regulatory():
     return corpus, rules
 
 
+def get_gemini_client():
+    if not os.environ.get("GEMINI_API_KEY"):
+        return None
+    from google import genai
+    return genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+
 def get_groq_client():
+    """Used only for vendor/financing web search (groq/compound) — Gemini's Google
+    Search grounding needs a billing-enabled project even on a free API key."""
     if not os.environ.get("GROQ_API_KEY"):
         return None
     from openai import OpenAI
@@ -553,10 +578,12 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
     reg_explanation = None
     reg_error = None
     vendors, vendor_warnings = [], []
+    financing_options, financing_warnings = [], []
     if run_llm:
-        client = get_groq_client()
+        client = get_gemini_client()
+        search_client = get_groq_client()
         if client is None:
-            reg_error = "GROQ_API_KEY not set in environment — AI legal explanation and vendor web search skipped."
+            reg_error = "GEMINI_API_KEY not set in environment — AI legal explanation and vendor/financing extraction skipped."
         else:
             try:
                 from gadded.regulatory import explain_with_llm
@@ -565,14 +592,24 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
                 reg_explanation = explain_with_llm(question, retrieved, reg_findings, client)
             except Exception as e:
                 reg_error = f"Regulatory explanation unavailable this run ({type(e).__name__})."
-            try:
-                from gadded.vendors import discover_vendors
-                vendors, vendor_warnings = discover_vendors(
-                    ai.location.address or "Egypt", rec.recommendedCapacityKw,
-                    ai.connectionModel, client, max_candidates=5,
-                )
-            except Exception as e:
-                vendor_warnings = [f"vendor discovery unavailable this run ({type(e).__name__})"]
+            if search_client is None:
+                vendor_warnings = ["GROQ_API_KEY not set in environment — vendor/financing web search skipped."]
+                financing_warnings = list(vendor_warnings)
+            else:
+                try:
+                    from gadded.vendors import discover_vendors
+                    vendors, vendor_warnings = discover_vendors(
+                        ai.location.address or "Egypt", rec.recommendedCapacityKw,
+                        ai.connectionModel, search_client, client, max_candidates=5,
+                    )
+                except Exception as e:
+                    vendor_warnings = [f"vendor discovery unavailable this run ({type(e).__name__})"]
+                try:
+                    financing_options, financing_warnings = discover_financing_options(
+                        rec.recommendedCapacityKw, row["capex_egp"], search_client, client, max_candidates=5,
+                    )
+                except Exception as e:
+                    financing_warnings = [f"financing discovery unavailable this run ({type(e).__name__})"]
 
     material_warnings = [
         w for w in load_profile.result.warnings
@@ -595,6 +632,7 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
         "result": result, "feas": feas, "opt": opt, "load_profile": load_profile,
         "weather": weather, "assumptions": a, "reg_explanation": reg_explanation,
         "reg_error": reg_error, "vendor_warnings": vendor_warnings,
+        "financing_options": financing_options, "financing_warnings": financing_warnings,
     }
 
 
@@ -731,9 +769,9 @@ with st.expander("📝 View & Edit Factory Assessment Parameters", expanded=True
     cta_col1, cta_col2 = st.columns([3, 1])
     with cta_col1:
         run_llm = st.checkbox(
-            "Enable Groq AI Stages (Grounded Legal Explanation + Live Vendor Web Search)",
+            "Enable AI Stages (Gemini Legal Explanation + Groq Web Search)",
             value=True,
-            help="Calls Groq LLM endpoint. Fails soft if API key is missing or rate limited.",
+            help="Calls the Gemini and Groq APIs. Fails soft if either key is missing or rate limited.",
         )
     with cta_col2:
         run_clicked = st.button("🚀 Run Assessment", type="primary", use_container_width=True)
@@ -787,19 +825,33 @@ if result.status != "likely_feasible":
         for reason in run["feas"].reasons:
             st.markdown(f"- **{reason}**")
 
-# Metric Strip (6 Executive KPIs)
+# --- Headline sales pitch: the 4 numbers that actually convince someone to buy ---
+cash_scn = next((s for s in result.financial if s.scenario == "cash"), None)
+best_scn = cash_scn or result.financial[0]
+lifetime_years = int(run["assumptions"].number("analysis_period_years"))
+lifetime_total = lifetime_savings_egp(best_scn, run["assumptions"])
+
 st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
-m_cols = st.columns(6)
-metric_card(m_cols[0], "Rec. Capacity", f"{rec.recommendedCapacityKw:.0f} kW", "⚡")
-metric_card(m_cols[1], "Annual Gen.", fmt_kwh_short(rec.annualGenerationKwh), "☀️")
-metric_card(m_cols[2], "Self-Consumpt.", f"{rec.selfConsumptionRatio*100:.1f}%", "🔄")
+pitch_cols = st.columns(4)
+metric_card(pitch_cols[0], "You Save Every Year", fmt_egp_short(best_scn.yearOneSavingsEgp), "💵")
+metric_card(
+    pitch_cols[1], "Pays for Itself In",
+    f"{result.risk.paybackP50Years:.1f} yrs" if result.risk.paybackP50Years else "n/a", "⏱️",
+)
+metric_card(pitch_cols[2], f"Total Savings ({lifetime_years} yrs)", fmt_egp_short(lifetime_total), "📈")
+metric_card(pitch_cols[3], "Powered by the Sun", f"{rec.selfSufficiencyRatio*100:.0f}%", "☀️")
+st.caption(
+    f"'{lifetime_years}-year total' adds up every year's savings without adjusting for "
+    "future money being worth less today — see Financial Risk for the risk-adjusted (NPV) view."
+)
 
-cash_savings = next((s.yearOneSavingsEgp for s in result.financial if s.scenario == "cash"), None)
-metric_card(m_cols[3], "Year 1 Savings", fmt_egp_short(cash_savings) if cash_savings else "n/a", "💵")
-metric_card(m_cols[4], "Median Payback", f"{result.risk.paybackP50Years:.1f} yr" if result.risk.paybackP50Years else "n/a", "📈")
-
-reg_dur = next((f.estimatedDurationDays for f in result.regulatoryFindings if f.estimatedDurationDays), None)
-metric_card(m_cols[5], "Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} d" if reg_dur else "📋", "⏱️")
+with st.expander("🔬 Full Technical Snapshot (system size, generation, approval time)"):
+    tech_cols = st.columns(4)
+    metric_card(tech_cols[0], "Recommended System Size", f"{rec.recommendedCapacityKw:.0f} kW", "⚡")
+    metric_card(tech_cols[1], "Solar Electricity Produced / Year", fmt_kwh_short(rec.annualGenerationKwh), "☀️")
+    metric_card(tech_cols[2], "Share of Solar Actually Used On-Site", f"{rec.selfConsumptionRatio*100:.1f}%", "🔄")
+    reg_dur = next((f.estimatedDurationDays for f in result.regulatoryFindings if f.estimatedDurationDays), None)
+    metric_card(tech_cols[3], "Regulatory Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} days" if reg_dur else "n/a", "📋")
 
 st.markdown("<div class='mb-6'></div>", unsafe_allow_html=True)
 
@@ -812,93 +864,186 @@ tab_tech, tab_fin, tab_site, tab_reg, tab_vendor, tab_report = st.tabs(
 
 # --- Tab 1: Technical & PV Physics ---
 with tab_tech:
-    st.markdown("#### Technical Sizing & Energy Yield Simulation")
+    st.markdown("#### Will the Sun Be There When Your Factory Needs Power?")
     best = run["opt"].best_match
 
-    col_t1, col_t2 = st.columns([3, 2])
-    with col_t1:
-        fig, ax = plt.subplots(figsize=(8, 3.2))
-        sample = best.hourly.loc["2023-06-05":"2023-06-11"]
-        ax.plot(sample.index, sample["load_kw"], label="Factory Load (kW)", color=TOKENS["technical"], linewidth=1.5)
-        ax.plot(sample.index, sample["pv_kw"], label=f"PV Output ({rec.recommendedCapacityKw:.0f} kW)", color=TOKENS["solar"], linewidth=1.5)
-        ax.set_facecolor("#F8FAFC")
-        fig.patch.set_facecolor("#FFFFFF")
-        ax.grid(True, linestyle="--", alpha=0.5)
-        ax.set_ylabel("kW")
-        ax.legend(frameon=True, facecolor="#FFFFFF")
-        st.pyplot(fig)
-        st.caption("Sample 7-day hourly load vs solar PV production curve.")
+    fig, ax = plt.subplots(figsize=(9, 3.2))
+    sample = best.hourly.loc["2023-06-05":"2023-06-11"]
+    ax.plot(sample.index, sample["load_kw"], label="Your Factory's Power Use", color=TOKENS["technical"], linewidth=1.5)
+    ax.plot(sample.index, sample["pv_kw"], label=f"Solar Power Produced ({rec.recommendedCapacityKw:.0f} kW system)", color=TOKENS["solar"], linewidth=1.5)
+    ax.set_facecolor("#F8FAFC")
+    fig.patch.set_facecolor("#FFFFFF")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.set_ylabel("kW")
+    ax.legend(frameon=True, facecolor="#FFFFFF")
+    st.pyplot(fig)
+    st.caption(
+        "One sample week. Where the orange (solar) line sits under the dark (factory use) "
+        "line, your panels are directly covering what you'd otherwise buy from the grid."
+    )
 
-    with col_t2:
-        fig2, ax2 = plt.subplots(figsize=(6, 3.2))
+    st.info(
+        f"☀️ Your solar system covers **{rec.selfSufficiencyRatio*100:.0f}% of all the electricity your factory uses** "
+        f"across the year. The rest ({rec.annualImportedKwh:,.0f} kWh/yr) still comes from the grid as normal. "
+        f"It uses **{rec.roofAreaRequiredM2/ai.site.availableRoofAreaM2*100:.0f}% of your available roof space** "
+        f"({rec.roofAreaRequiredM2:,.0f} of {ai.site.availableRoofAreaM2:,.0f} m²)."
+    )
+
+    with st.expander("🔬 Advanced: How we picked this exact system size"):
+        st.caption(
+            "We test many system sizes (limited by your roof space) and pick the one that "
+            "creates the most long-term financial value — not simply the biggest one that fits."
+        )
+        fig2, ax2 = plt.subplots(figsize=(8, 3.2))
         table = run["opt"].table
         ax2.plot(table["capacity_kw"], table["npv_egp"] / 1e6, marker="o", color=TOKENS["energy"], linewidth=1.5)
         ax2.axvline(rec.recommendedCapacityKw, color=TOKENS["solar"], linestyle="--", label="Recommended")
-        ax2.axvline(rec.physicalMaximumKw, color=TOKENS["critical"], linestyle=":", label="Physical Max")
+        ax2.axvline(rec.physicalMaximumKw, color=TOKENS["critical"], linestyle=":", label="Roof's Physical Limit")
         ax2.set_facecolor("#F8FAFC")
         fig2.patch.set_facecolor("#FFFFFF")
         ax2.grid(True, linestyle="--", alpha=0.5)
-        ax2.set_xlabel("Candidate Capacity (kW)")
-        ax2.set_ylabel("Project NPV (Million EGP)")
+        ax2.set_xlabel("System Size Tested (kW)")
+        ax2.set_ylabel("Project Value (Million EGP)")
         ax2.legend(frameon=True, facecolor="#FFFFFF")
         st.pyplot(fig2)
-        st.caption(f"NPV Grid Search curve across candidate system capacities.")
-
-    st.info(
-        f"**Self-Sufficiency Ratio:** {rec.selfSufficiencyRatio*100:.1f}% | "
-        f"**Annual Imported Grid Energy:** {rec.annualImportedKwh:,.0f} kWh | "
-        f"**Roof Utilization:** {rec.roofAreaRequiredM2:,.0f} m² used of {ai.site.availableRoofAreaM2:,.0f} m² available "
-        f"({rec.roofAreaRequiredM2/ai.site.availableRoofAreaM2*100:.1f}%)."
-    )
+        st.caption("Each point is one candidate system size; higher is more financially valuable.")
 
 # --- Tab 2: Financial Risk & Monte Carlo ---
 with tab_fin:
-    st.markdown("#### Financial Analysis & Monte Carlo Risk Simulation")
-    
+    st.markdown("#### What Will This Actually Cost You, and What Do You Get Back?")
+
+    scenario_copy = {
+        "cash": ("💵", "Pay Cash Upfront", "What you'd need to pay today, in full."),
+        "finance": ("🏦", "Pay with a Bank Loan", "Small upfront payment, then fixed monthly installments."),
+    }
     fin_cols = st.columns(len(result.financial))
     for idx, s in enumerate(result.financial):
+        icon, title, subtitle = scenario_copy.get(s.scenario, ("💰", s.scenario.title(), ""))
+        lifetime = lifetime_savings_egp(s, run["assumptions"])
+        monthly_row = (
+            f'<div class="flex justify-between border-b border-slate-100 pb-1">'
+            f'<span>Monthly Loan Payment:</span> <span class="font-bold text-slate-900">{s.monthlyLoanPaymentEgp:,.0f} EGP</span></div>'
+            if s.monthlyLoanPaymentEgp else ""
+        )
         with fin_cols[idx]:
             st.markdown(
                 f"""
                 <div class="gadded-glass-card">
-                    <div class="font-extrabold text-slate-900 text-lg mb-2">{s.scenario.title()} Scenario</div>
-                    <div class="text-xs text-slate-500 font-semibold mb-1">Capital Expenditure</div>
+                    <div class="font-extrabold text-slate-900 text-lg mb-1">{icon} {title}</div>
+                    <div class="text-xs text-slate-500 font-medium mb-3">{subtitle}</div>
+                    <div class="text-xs text-slate-500 font-semibold mb-1">Upfront Cost</div>
                     <div class="text-xl font-extrabold text-emerald-700 mb-3">{s.capexEgp:,.0f} EGP</div>
                     <div class="space-y-1.5 text-xs">
-                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>NPV:</span> <span class="font-bold text-slate-900">{s.npvEgp:,.0f} EGP</span></div>
-                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>IRR:</span> <span class="font-bold text-slate-900">{f'{s.irrPct:.1f}%' if s.irrPct else 'n/a'}</span></div>
-                        <div class="flex justify-between"><span>Simple Payback:</span> <span class="font-bold text-slate-900">{f'{s.simplePaybackYears:.1f} yrs' if s.simplePaybackYears else 'n/a'}</span></div>
+                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>You Save / Year:</span> <span class="font-bold text-slate-900">{s.yearOneSavingsEgp:,.0f} EGP</span></div>
+                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>Pays for Itself In:</span> <span class="font-bold text-slate-900">{f'{s.simplePaybackYears:.1f} yrs' if s.simplePaybackYears else 'n/a'}</span></div>{monthly_row}
+                        <div class="flex justify-between"><span>Total Savings ({lifetime_years} yrs):</span> <span class="font-bold text-slate-900">{lifetime:,.0f} EGP</span></div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            st.caption(
+                f"Equivalent annual return: **{s.irrPct:.0f}%** — like an interest rate, but paid to "
+                "you by your own electricity bill instead of a bank."
+                if s.irrPct is not None else ""
+            )
 
     st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
-    f_col1, f_col2 = st.columns(2)
-    
-    with f_col1:
-        fig3, ax3 = plt.subplots(figsize=(6, 3))
-        ax3.bar(
-            ["P10 (Conservative)", "P50 (Median)", "P90 (Optimistic)"],
-            [result.risk.npvP10Egp / 1e6, result.risk.npvP50Egp / 1e6, result.risk.npvP90Egp / 1e6],
-            color=[TOKENS["critical"], TOKENS["solar"], TOKENS["success"]],
+    st.markdown("##### How Sure Are We? (Accounting for Uncertain Sun, Prices & Costs)")
+    st.caption(
+        f"We ran {result.risk.runCount:,} simulated versions of this project, each with slightly "
+        "different weather, prices, and costs, to see how much the outcome could realistically vary."
+    )
+    fig3, ax3 = plt.subplots(figsize=(8, 3))
+    ax3.bar(
+        ["Worst Case", "Expected", "Best Case"],
+        [result.risk.npvP10Egp / 1e6, result.risk.npvP50Egp / 1e6, result.risk.npvP90Egp / 1e6],
+        color=[TOKENS["critical"], TOKENS["solar"], TOKENS["success"]],
+    )
+    ax3.set_ylabel("Project Value (Million EGP)")
+    ax3.set_facecolor("#F8FAFC")
+    fig3.patch.set_facecolor("#FFFFFF")
+    st.pyplot(fig3)
+    if result.risk.probabilityTargetPaybackPct is not None:
+        st.caption(
+            f"Even in the worst case we tested, this is a positive investment. "
+            f"Chance of paying itself back within your {ai.finance.targetPaybackYears:.0f}-year target: "
+            f"**{result.risk.probabilityTargetPaybackPct:.0f}%**."
         )
-        ax3.set_ylabel("NPV (Million EGP)")
-        ax3.set_facecolor("#F8FAFC")
-        fig3.patch.set_facecolor("#FFFFFF")
-        st.pyplot(fig3)
-        st.caption(f"Monte Carlo NPV uncertainty range ({result.risk.runCount} simulations).")
 
-    with f_col2:
-        fig4, ax4 = plt.subplots(figsize=(6, 3))
+    with st.expander("🔬 Advanced: What affects the outcome the most?"):
         drivers = result.risk.topSensitivityDrivers
+        fig4, ax4 = plt.subplots(figsize=(8, 3))
         ax4.barh([d.variable for d in drivers][::-1], [d.influence * 100 for d in drivers][::-1], color=TOKENS["technical"])
-        ax4.set_xlabel("Relative NPV Sensitivity (%)")
+        ax4.set_xlabel("Relative Influence on Project Value (%)")
         ax4.set_facecolor("#F8FAFC")
         fig4.patch.set_facecolor("#FFFFFF")
         st.pyplot(fig4)
-        st.caption("One-at-a-time sensitivity ranking on project NPV.")
+        st.caption("One-at-a-time sensitivity ranking — which assumption moves the result most if it's wrong.")
+
+    st.markdown("<div class='my-5'></div>", unsafe_allow_html=True)
+    st.markdown("#### 🏦 Bank Financing Options")
+    st.caption(
+        "Groq `groq/compound` searches the web for real Egyptian bank solar-financing "
+        "products, and Gemini extracts structured candidates from the results; pick one "
+        "to re-price the finance scenario. Falls back to the static product in "
+        "`assumptions.json` if search is unavailable or returns nothing."
+    )
+
+    financing_options = run["financing_options"]
+    financing_warnings = run["financing_warnings"]
+    fin_assumptions = run["assumptions"]
+    fin_row = run["opt"].table.loc[rec.recommendedCapacityKw]
+    fin_year1_savings = fin_row["year1_savings_egp"]
+
+    default_label = "Default — assumptions.json bank product"
+    option_labels = [default_label] + [
+        f"{o.bankName} — {o.productName} ({o.financingRatePct:.1f}%/{o.termYears}y, {o.downPaymentPct:.0f}% down)"
+        for o in financing_options
+    ]
+    chosen_label = st.selectbox(
+        "Choose a bank financing option to price:", option_labels, key="financing_choice"
+    )
+
+    if chosen_label == default_label:
+        chosen_option = None
+        chosen_scenario = finance_scenario(rec.recommendedCapacityKw, fin_year1_savings, fin_assumptions)
+    else:
+        chosen_option = financing_options[option_labels.index(chosen_label) - 1]
+        chosen_scenario = finance_scenario(
+            rec.recommendedCapacityKw, fin_year1_savings, fin_assumptions,
+            financing_rate_pct=chosen_option.financingRatePct,
+            financing_term_years=chosen_option.termYears,
+            down_payment_pct=chosen_option.downPaymentPct,
+            financing_fees_pct=chosen_option.feesPct,
+            financing_label=f"{chosen_option.bankName} — {chosen_option.productName}",
+        )
+
+    chosen_lifetime = lifetime_savings_egp(chosen_scenario, fin_assumptions)
+    fin_pick_cols = st.columns(4)
+    metric_card(
+        fin_pick_cols[0], "Monthly Payment",
+        f"{chosen_scenario.monthlyLoanPaymentEgp:,.0f} EGP" if chosen_scenario.monthlyLoanPaymentEgp else "n/a", "🧾",
+    )
+    metric_card(
+        fin_pick_cols[1], "Pays for Itself In",
+        f"{chosen_scenario.simplePaybackYears:.1f} yr" if chosen_scenario.simplePaybackYears else "n/a", "⏱️",
+    )
+    metric_card(fin_pick_cols[2], f"Total Savings ({lifetime_years} yrs)", f"{chosen_lifetime:,.0f} EGP", "📈")
+    metric_card(fin_pick_cols[3], "Equivalent Annual Return", f"{chosen_scenario.irrPct:.0f}%" if chosen_scenario.irrPct is not None else "n/a", "💰")
+
+    if chosen_option is not None:
+        with st.expander(f"📎 Source evidence — {chosen_option.bankName} {chosen_option.productName}"):
+            st.write(f"**Verification status:** {chosen_option.verificationStatus}")
+            if chosen_option.notes:
+                st.write(chosen_option.notes)
+            for ev in chosen_option.evidence:
+                st.markdown(f"- [{ev.title}]({ev.url})")
+    elif not financing_options:
+        if financing_warnings:
+            st.caption("Financing search note: " + "; ".join(financing_warnings))
+        else:
+            st.caption("Live bank-financing search was not run for this session (enable AI features and rerun).")
 
 # --- Tab 3: Site & GIS Spatial Screening ---
 with tab_site:
@@ -960,7 +1105,7 @@ with tab_reg:
                     st.write(f"> *{c.excerpt}*")
 
     if run["reg_explanation"]:
-        st.markdown("##### 🤖 Grounded Groq AI Legal Analysis")
+        st.markdown("##### 🤖 Grounded Gemini AI Legal Analysis")
         st.info(run["reg_explanation"])
     elif run["reg_error"]:
         st.warning(run["reg_error"])

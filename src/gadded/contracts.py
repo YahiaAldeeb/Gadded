@@ -300,6 +300,34 @@ class VendorCandidate(BaseModel):
         return v
 
 
+class FinancingEvidence(BaseModel):
+    title: str
+    url: str
+    publisher: str | None = None
+    retrievedAt: str
+    supportingText: str
+
+
+class FinancingOption(BaseModel):
+    bankName: str
+    productName: str
+    financingRatePct: float
+    termYears: int
+    downPaymentPct: float
+    feesPct: float = 0.0
+    maxFinancingEgp: float | None = None
+    notes: str | None = None
+    evidence: list[FinancingEvidence]
+    verificationStatus: Literal["source_supported", "needs_manual_verification"]
+
+    @field_validator("evidence")
+    @classmethod
+    def _at_least_one_source(cls, v: list[FinancingEvidence]) -> list[FinancingEvidence]:
+        if not v:
+            raise ValueError("financing option requires at least one evidence item")
+        return v
+
+
 class ResultVersions(BaseModel):
     code: str
     assumptionSet: str

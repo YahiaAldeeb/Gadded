@@ -149,13 +149,13 @@ def test_condition_dsl_rejects_unknown_operator() -> None:
         evaluate_rules(ctx, bad_rules, _corpus())
 
 
-@pytest.mark.skipif(not os.environ.get("GROQ_API_KEY"), reason="no GROQ_API_KEY set")
+@pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="no GEMINI_API_KEY set")
 def test_llm_retrieval_ranks_relevant_excerpts_live() -> None:
     from dotenv import load_dotenv
-    from openai import OpenAI
+    from google import genai
 
     load_dotenv()
-    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     corpus = _corpus()
     top = retrieve(
@@ -170,12 +170,13 @@ def test_llm_retrieval_ranks_relevant_excerpts_live() -> None:
 
 
 def test_llm_retrieval_falls_back_to_tfidf_on_client_failure() -> None:
+    class _BrokenModels:
+        @staticmethod
+        def generate_content(**kwargs):
+            raise RuntimeError("simulated API failure")
+
     class _BrokenClient:
-        class chat:
-            class completions:
-                @staticmethod
-                def create(**kwargs):
-                    raise RuntimeError("simulated API failure")
+        models = _BrokenModels()
 
     corpus = _corpus()
     top = retrieve(
@@ -184,13 +185,13 @@ def test_llm_retrieval_falls_back_to_tfidf_on_client_failure() -> None:
     assert top[0][0]["id"] == "exc-003"
 
 
-@pytest.mark.skipif(not os.environ.get("GROQ_API_KEY"), reason="no GROQ_API_KEY set")
+@pytest.mark.skipif(not os.environ.get("GEMINI_API_KEY"), reason="no GEMINI_API_KEY set")
 def test_llm_explanation_is_grounded_live() -> None:
     from dotenv import load_dotenv
-    from openai import OpenAI
+    from google import genai
 
     load_dotenv()
-    client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     corpus = _corpus()
     rules = _rules()

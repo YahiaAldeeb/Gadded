@@ -2,7 +2,7 @@
 
 Three layers, run in order (never merged into one call):
 
-1. Retrieval — LLM relevance scoring (Groq, JSON-scored) over the local excerpt corpus
+1. Retrieval — LLM relevance scoring (Gemini, JSON-scored) over the local excerpt corpus
    (``data/regulations/excerpts.json``) when a client is supplied; falls back to TF-IDF
    cosine similarity when no client is given or the LLM call fails, so retrieval always
    works offline and in tests. Stands in for pgvector/embeddings at this corpus size
@@ -10,10 +10,10 @@ Three layers, run in order (never merged into one call):
 2. Rules — deterministic, versioned (``data/regulations/rules.json``), evaluated with a
    small safe condition DSL (no ``eval`` of stored code). Produces the actual
    ``RegulatoryFinding`` conclusions, severities, required documents, and citations.
-3. LLM explanation — Groq's ``openai/gpt-oss-120b``, given only the retrieved excerpt
-   text and the rule conclusions already computed. It may summarize and note
-   uncertainty; it may not state any permit, threshold, authority, or duration that is
-   not already present in what it was given, and it never chooses the conclusion.
+3. LLM explanation — Gemini, given only the retrieved excerpt text and the rule
+   conclusions already computed. It may summarize and note uncertainty; it may not
+   state any permit, threshold, authority, or duration that is not already present in
+   what it was given, and it never chooses the conclusion.
 
 Retrieved documents are untrusted text: their content is never treated as instructions.
 """
@@ -23,17 +23,16 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from gadded._llm import DEFAULT_MODEL, gemini_json_call, gemini_text_call
 from gadded.contracts import EstimatedDuration, RegulatoryCitation, RegulatoryFinding
 
 REGULATORY_RULE_VERSION = "rules-0.1.0"
 REGULATORY_PROMPT_VERSION = "reg-explain-0.1.0"
-_REASONING_MODEL_DEFAULT = "openai/gpt-oss-120b"
 
 
 @dataclass
@@ -79,26 +78,19 @@ def _retrieve_llm(
     query: str, corpus: RegulatoryCorpus, top_k: int, client, model: str | None
 ) -> list[tuple[dict, float]] | None:
     """Return None (never raises) on any failure, so callers fall back to TF-IDF."""
-    model = model or os.environ.get("GROQ_REASONING_MODEL", _REASONING_MODEL_DEFAULT)
+    model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
     excerpt_block = "\n\n".join(f"[{e['id']}] {e['text']}" for e in corpus.excerpts)
     prompt = f"Query: {query}\n\nExcerpts:\n{excerpt_block}"
+    payload = gemini_json_call(client, model, _RETRIEVAL_INSTRUCTIONS, prompt, max_output_tokens=3000)
+    if payload is None:
+        return None
     try:
-        resp = client.chat.completions.create(
-            model=model,
-            reasoning_effort="low",
-            max_tokens=600,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": _RETRIEVAL_INSTRUCTIONS},
-                {"role": "user", "content": prompt},
-            ],
-        )
-        scores = json.loads(resp.choices[0].message.content)["scores"]
+        scores = payload["scores"]
         ranked = sorted(
             corpus.excerpts, key=lambda e: float(scores.get(e["id"], 0.0)), reverse=True
         )
         return [(e, float(scores.get(e["id"], 0.0))) for e in ranked[:top_k]]
-    except Exception:
+    except (KeyError, TypeError, ValueError):
         return None
 
 
@@ -236,7 +228,7 @@ def explain_with_llm(
     Returns None (never raises) on any API failure, so a regulatory-explanation outage
     cannot invalidate the deterministic rule findings.
     """
-    model = model or os.environ.get("GROQ_REASONING_MODEL", _REASONING_MODEL_DEFAULT)
+    model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
     excerpt_block = "\n\n".join(
         f"[{e['documentId']} | {e['authority']} | {e.get('effectiveDate', 'n/a')}]\n{e['text']}"
         for e, _score in retrieved
@@ -251,16 +243,4 @@ def explain_with_llm(
         f"Retrieved excerpts:\n{excerpt_block}\n\n"
         f"Rule conclusions already computed (do not change these):\n{findings_block}"
     )
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            reasoning_effort="low",
-            max_tokens=400,
-            messages=[
-                {"role": "system", "content": _GROUNDING_INSTRUCTIONS},
-                {"role": "user", "content": prompt},
-            ],
-        )
-        return resp.choices[0].message.content
-    except Exception:
-        return None
+    return gemini_text_call(client, model, _GROUNDING_INSTRUCTIONS, prompt, max_output_tokens=1500)
