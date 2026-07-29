@@ -20,7 +20,7 @@ raises, so a vendor-search outage cannot invalidate the technical/financial resu
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import ValidationError
 
@@ -97,7 +97,7 @@ def search_vendor_evidence(
                 timeout=timeout,
             )
         except Exception as e:
-            warnings.append(f"search failed for query '{q}': {type(e).__name__}")
+            warnings.append(f"vendor search failed for query '{q}': ({type(e).__name__}) – {e}")
             continue
 
         msg = resp.choices[0].message
@@ -128,7 +128,7 @@ def extract_vendor_candidates(
         return [], ["no search evidence available; vendor discovery skipped"]
 
     model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
-    retrieved_at = datetime.now(timezone.utc).isoformat()
+    retrieved_at = datetime.now(UTC).isoformat()
 
     evidence_block = "\n\n".join(
         f"[{i}] title: {r['title']}\nurl: {r['url']}\ncontent: {r['content'][:1200]}"

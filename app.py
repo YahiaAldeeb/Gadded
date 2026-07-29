@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -27,8 +28,14 @@ from gadded.finance import build_scenarios, finance_scenario, savings_stream
 from gadded.financing import discover_financing_options
 from gadded.gis import load_zones, screen_site
 from gadded.load_ml import predict_load_ml, train_load_ml_model
-from gadded.regulatory import build_context, evaluate_rules, load_excerpts, load_rules, retrieve
 from gadded.optimization import optimize_capacity
+from gadded.regulatory import (
+    build_context,
+    evaluate_rules,
+    load_excerpts,
+    load_rules,
+    retrieve,
+)
 from gadded.report import assemble_result, render_html
 from gadded.risk import RiskInputs, run_monte_carlo
 from gadded.weather import load_cached_weather
@@ -89,14 +96,14 @@ def inject_tailwind_theme() -> None:
         height=0,
     )
     st.markdown(
-        f"""
+        """
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
         <style>
-        :root {{
+        :root {
             --ink: #0B1220;
             --ink-soft: #334155;
             --muted: #64748B;
@@ -129,47 +136,47 @@ def inject_tailwind_theme() -> None:
             --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.08);
             --shadow-lg: 0 16px 36px -10px rgba(15, 23, 42, 0.14);
             --shadow-brand: 0 10px 24px -8px rgba(5, 150, 105, 0.35);
-        }}
+        }
 
         /* Global Reset & Typography */
-        html, body, [class*="css"], .stApp {{
+        html, body, [class*="css"], .stApp {
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             background-color: var(--canvas) !important;
             color: var(--ink) !important;
-        }}
+        }
 
-        .stApp {{
+        .stApp {
             background-image:
                 radial-gradient(circle at 8% 0%, rgba(5, 150, 105, 0.05), transparent 32%),
                 radial-gradient(circle at 92% 6%, rgba(217, 119, 6, 0.045), transparent 30%) !important;
             background-attachment: fixed !important;
-        }}
+        }
 
-        code, pre, .font-mono {{
+        code, pre, .font-mono {
             font-family: 'Geist Mono', monospace !important;
-        }}
+        }
 
-        .tabnum {{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }}
+        .tabnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
-        ::selection {{ background: var(--brand-ring); color: var(--ink); }}
+        ::selection { background: var(--brand-ring); color: var(--ink); }
 
         /* Responsive Container */
-        .main .block-container {{
+        .main .block-container {
             max-width: 1180px !important;
             padding-top: 1.5rem !important;
             padding-bottom: 4rem !important;
-        }}
+        }
 
-        @media (max-width: 640px) {{
-            .main .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; }}
-        }}
+        @media (max-width: 640px) {
+            .main .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
+        }
 
         /* STREAMLIT CONTROLS OVERRIDES */
-        label, div[data-testid="stMarkdownContainer"] p, .stMarkdown label, .stSlider label {{
+        label, div[data-testid="stMarkdownContainer"] p, .stMarkdown label, .stSlider label {
             color: var(--ink) !important;
             font-weight: 700 !important;
             font-size: 0.9rem !important;
-        }}
+        }
 
         div[data-baseweb="select"] > div,
         div[data-baseweb="input"] > div,
@@ -177,7 +184,7 @@ def inject_tailwind_theme() -> None:
         input, select, textarea,
         .stTextInput > div > div > input,
         .stNumberInput > div > div > input,
-        .stSelectbox > div > div {{
+        .stSelectbox > div > div {
             background-color: var(--surface) !important;
             color: var(--ink) !important;
             border: 1.5px solid #CBD5E1 !important;
@@ -186,75 +193,75 @@ def inject_tailwind_theme() -> None:
             font-weight: 600 !important;
             box-shadow: none !important;
             transition: border-color 0.15s ease !important;
-        }}
+        }
 
         div[data-baseweb="select"]:focus-within > div,
-        div[data-baseweb="base-input"]:focus-within {{
+        div[data-baseweb="base-input"]:focus-within {
             border-color: var(--brand) !important;
-        }}
+        }
 
-        div[data-baseweb="select"] span {{
+        div[data-baseweb="select"] span {
             color: var(--ink) !important;
             font-weight: 700 !important;
-        }}
+        }
 
-        .stNumberInput button {{
+        .stNumberInput button {
             background-color: #F1F5F9 !important;
             color: var(--ink) !important;
             border: 1px solid #CBD5E1 !important;
             border-radius: 8px !important;
-        }}
+        }
 
-        hr {{ border-color: var(--line) !important; }}
+        hr { border-color: var(--line) !important; }
 
         /* STREAMLIT EXPANDER OVERRIDE */
-        .stExpander {{
+        .stExpander {
             background-color: var(--surface) !important;
             border: 1.5px solid var(--line) !important;
             border-radius: 14px !important;
             box-shadow: var(--shadow-sm) !important;
             margin-bottom: 1rem !important;
             overflow: hidden !important;
-        }}
+        }
 
-        .stExpander > details > summary {{
+        .stExpander > details > summary {
             background-color: var(--surface) !important;
             color: var(--ink) !important;
             font-weight: 800 !important;
             font-size: 0.95rem !important;
             padding: 0.8rem 1.15rem !important;
-        }}
+        }
 
-        .stExpander > details[open] > summary {{
+        .stExpander > details[open] > summary {
             border-bottom: 1.5px solid var(--line-soft) !important;
-        }}
+        }
 
-        .stExpander > details > summary:hover {{
+        .stExpander > details > summary:hover {
             background-color: #FAFBFC !important;
-        }}
+        }
 
         .stExpander > details > summary p,
         .stExpander > details > summary span,
-        .stExpander > details > summary div {{
+        .stExpander > details > summary div {
             color: var(--ink) !important;
             font-weight: 800 !important;
             font-size: 0.95rem !important;
-        }}
+        }
 
         /* ---------- HERO ---------- */
         /* Higher-specificity override: the global stMarkdownContainer p rule above forces
            dark --ink text on every <p>, which would make the hero's light-on-dark copy
            unreadable. */
-        div[data-testid="stMarkdownContainer"] .gadded-hero p {{
+        div[data-testid="stMarkdownContainer"] .gadded-hero p {
             color: rgba(226, 232, 240, 0.92) !important;
             font-weight: 500 !important;
             font-size: inherit !important;
-        }}
-        div[data-testid="stMarkdownContainer"] .gadded-hero p.gadded-hero-arabic {{
+        }
+        div[data-testid="stMarkdownContainer"] .gadded-hero p.gadded-hero-arabic {
             color: #6EE7B7 !important;
             font-weight: 800 !important;
-        }}
-        .gadded-hero {{
+        }
+        .gadded-hero {
             position: relative;
             background: radial-gradient(circle at 12% 15%, rgba(16, 185, 129, 0.38), transparent 42%),
                         radial-gradient(circle at 88% -4%, rgba(217, 119, 6, 0.24), transparent 38%),
@@ -264,67 +271,67 @@ def inject_tailwind_theme() -> None:
             padding: 2.5rem 2.6rem 2rem;
             box-shadow: var(--shadow-lg);
             overflow: hidden;
-        }}
-        .gadded-hero::after {{
+        }
+        .gadded-hero::after {
             content: "";
             position: absolute; inset: 0;
             background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px);
             background-size: 22px 22px;
             mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 75%);
             pointer-events: none;
-        }}
-        .gadded-hero-badge {{
+        }
+        .gadded-hero-badge {
             background: rgba(255,255,255,0.10);
             backdrop-filter: blur(6px);
             border: 1px solid rgba(255,255,255,0.22);
-        }}
-        .gadded-hero-badge .pulse-dot {{
+        }
+        .gadded-hero-badge .pulse-dot {
             width: 7px; height: 7px; border-radius: 9999px;
             background: #34D399;
             box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
             animation: gadded-pulse 2.2s ease-out infinite;
-        }}
-        @keyframes gadded-pulse {{
-            0%   {{ box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }}
-            70%  {{ box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }}
-            100% {{ box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }}
-        }}
-        .gadded-hero-meter {{
+        }
+        @keyframes gadded-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+            70%  { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
+        .gadded-hero-meter {
             margin-top: 1.75rem;
             height: 4px;
             border-radius: 9999px;
             background: linear-gradient(90deg, #34D399 0%, #A7F3D0 28%, #FCD34D 55%, #D97706 78%, rgba(217,119,6,0.15) 100%);
             opacity: 0.85;
-        }}
-        .gadded-hero-stats {{
+        }
+        .gadded-hero-stats {
             display: flex;
             flex-wrap: wrap;
             gap: 1.75rem;
             margin-top: 1.1rem;
-        }}
-        .gadded-hero-stat-label {{
+        }
+        .gadded-hero-stat-label {
             font-size: 0.66rem;
             font-weight: 700;
             letter-spacing: 0.1em;
             text-transform: uppercase;
             color: rgba(255,255,255,0.45);
             margin-bottom: 0.2rem;
-        }}
-        .gadded-hero-stat-value {{
+        }
+        .gadded-hero-stat-value {
             font-size: 0.92rem;
             font-weight: 700;
             color: rgba(255,255,255,0.92);
-        }}
+        }
 
         /* ---------- EYEBROW SECTION HEADERS ---------- */
-        .gadded-eyebrow-row {{
+        .gadded-eyebrow-row {
             display: flex;
             align-items: center;
             gap: 0.7rem;
             margin-top: 2.75rem;
             margin-bottom: 0.4rem;
-        }}
-        .gadded-eyebrow-num {{
+        }
+        .gadded-eyebrow-num {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -338,13 +345,13 @@ def inject_tailwind_theme() -> None:
             height: 24px;
             letter-spacing: 0;
             flex: none;
-        }}
-        .gadded-eyebrow-line {{
+        }
+        .gadded-eyebrow-line {
             flex: 1;
             height: 1px;
             background: linear-gradient(90deg, var(--line) 0%, transparent 100%);
-        }}
-        .gadded-eyebrow-label {{
+        }
+        .gadded-eyebrow-label {
             font-size: 0.68rem;
             font-weight: 800;
             letter-spacing: 0.14em;
@@ -354,24 +361,24 @@ def inject_tailwind_theme() -> None:
             padding: 0.2rem 0.55rem;
             border-radius: 9999px;
             white-space: nowrap;
-        }}
-        .gadded-section-title {{
+        }
+        .gadded-section-title {
             font-size: 1.45rem;
             font-weight: 800;
             color: var(--ink);
             letter-spacing: -0.015em;
             margin-bottom: 0.2rem;
-        }}
-        .gadded-section-sub {{
+        }
+        .gadded-section-sub {
             font-size: 0.86rem;
             color: var(--muted);
             font-weight: 500;
             margin-bottom: 1.25rem;
             max-width: 62ch;
-        }}
+        }
 
         /* ---------- CARDS ---------- */
-        .gadded-preset-card {{
+        .gadded-preset-card {
             position: relative;
             background: var(--surface);
             border: 1.5px solid var(--line);
@@ -379,17 +386,17 @@ def inject_tailwind_theme() -> None:
             padding: 1.2rem;
             box-shadow: var(--shadow-sm);
             transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-        }}
-        .gadded-preset-card:hover {{
+        }
+        .gadded-preset-card:hover {
             box-shadow: var(--shadow-md);
             border-color: #A7D8C4;
             transform: translateY(-3px);
-        }}
-        .gadded-preset-card.active {{
+        }
+        .gadded-preset-card.active {
             border-color: var(--brand);
             box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14), var(--shadow-md);
-        }}
-        .gadded-preset-check {{
+        }
+        .gadded-preset-check {
             position: absolute;
             top: -9px; right: -9px;
             width: 24px; height: 24px;
@@ -400,17 +407,17 @@ def inject_tailwind_theme() -> None:
             font-size: 0.7rem; font-weight: 900;
             box-shadow: var(--shadow-md);
             border: 2px solid var(--canvas);
-        }}
-        .gadded-preset-icon {{
+        }
+        .gadded-preset-icon {
             width: 34px; height: 34px;
             border-radius: 10px;
             display: inline-flex; align-items: center; justify-content: center;
             font-size: 1.05rem;
             background: var(--canvas);
             border: 1px solid var(--line-soft);
-        }}
+        }
 
-        .gadded-glass-card {{
+        .gadded-glass-card {
             background: var(--surface);
             border: 1.5px solid var(--line);
             border-radius: var(--radius-md);
@@ -418,27 +425,27 @@ def inject_tailwind_theme() -> None:
             box-shadow: var(--shadow-sm);
             transition: all 0.18s ease;
             height: 100%;
-        }}
-        .gadded-glass-card:hover {{
+        }
+        .gadded-glass-card:hover {
             box-shadow: var(--shadow-md);
             border-color: #CBD5E1;
             transform: translateY(-2px);
-        }}
-        .gadded-glass-card.accent-brand {{ border-top: 3px solid var(--brand); }}
-        .gadded-glass-card.accent-ink {{ border-top: 3px solid var(--ink); }}
-        .gadded-scenario-row {{
+        }
+        .gadded-glass-card.accent-brand { border-top: 3px solid var(--brand); }
+        .gadded-glass-card.accent-ink { border-top: 3px solid var(--ink); }
+        .gadded-scenario-row {
             display: flex; justify-content: space-between; align-items: baseline;
             padding: 0.42rem 0; border-bottom: 1px dashed var(--line-soft);
             font-size: 0.78rem; color: var(--ink-soft);
-        }}
-        .gadded-scenario-row:last-child {{ border-bottom: none; }}
-        .gadded-scenario-row .val {{
+        }
+        .gadded-scenario-row:last-child { border-bottom: none; }
+        .gadded-scenario-row .val {
             font-weight: 800; color: var(--ink); font-family: 'Geist Mono', monospace;
             font-variant-numeric: tabular-nums;
-        }}
+        }
 
         /* Unified finding/list card (GIS, Regulatory, Vendor, Financing evidence) */
-        .gadded-finding-card {{
+        .gadded-finding-card {
             background: var(--surface);
             border: 1.5px solid var(--line);
             border-radius: var(--radius-md);
@@ -448,22 +455,22 @@ def inject_tailwind_theme() -> None:
             gap: 0.95rem;
             align-items: flex-start;
             transition: all 0.15s ease;
-        }}
-        .gadded-finding-card:hover {{
+        }
+        .gadded-finding-card:hover {
             border-color: #CBD5E1;
             box-shadow: var(--shadow-md);
-        }}
-        .gadded-finding-icon {{
+        }
+        .gadded-finding-icon {
             flex: none;
             width: 36px; height: 36px;
             border-radius: 11px;
             display: flex; align-items: center; justify-content: center;
             font-size: 1rem;
             font-weight: 800;
-        }}
+        }
 
         /* ---------- KPI METRIC CARDS ---------- */
-        .gadded-kpi-card {{
+        .gadded-kpi-card {
             position: relative;
             background: var(--surface);
             border: 1.5px solid var(--line);
@@ -473,13 +480,13 @@ def inject_tailwind_theme() -> None:
             height: 100%;
             transition: all 0.18s ease;
             overflow: hidden;
-        }}
-        .gadded-kpi-card:hover {{
+        }
+        .gadded-kpi-card:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
             border-color: #CBD5E1;
-        }}
-        .gadded-kpi-card .kpi-icon-bg {{
+        }
+        .gadded-kpi-card .kpi-icon-bg {
             width: 38px;
             height: 38px;
             border-radius: 11px;
@@ -488,31 +495,31 @@ def inject_tailwind_theme() -> None:
             justify-content: center;
             margin-bottom: 0.7rem;
             font-size: 1.05rem;
-        }}
-        .kpi-icon-brand {{ background: var(--brand-soft); }}
-        .kpi-icon-solar {{ background: var(--solar-soft); }}
-        .kpi-icon-violet {{ background: var(--violet-soft); }}
-        .kpi-icon-slate {{ background: #F1F5F9; }}
-        .gadded-kpi-card .kpi-label {{
+        }
+        .kpi-icon-brand { background: var(--brand-soft); }
+        .kpi-icon-solar { background: var(--solar-soft); }
+        .kpi-icon-violet { background: var(--violet-soft); }
+        .kpi-icon-slate { background: #F1F5F9; }
+        .gadded-kpi-card .kpi-label {
             font-size: 0.7rem;
             font-weight: 700;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.06em;
             margin-bottom: 0.32rem;
-        }}
-        .gadded-kpi-card .kpi-value {{
+        }
+        .gadded-kpi-card .kpi-value {
             font-size: 1.6rem;
             font-weight: 800;
             color: var(--ink);
             word-break: keep-all;
             letter-spacing: -0.015em;
             line-height: 1.15;
-        }}
+        }
 
         /* ---------- VERDICT PANEL (status + headline KPIs — the money shot) ---------- */
         div[data-testid="stVerticalBlockBorderWrapper"].st-key-verdict_panel,
-        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"] {{
+        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"] {
             background: linear-gradient(180deg, var(--surface) 0%, var(--surface-alt) 100%) !important;
             border: 1.5px solid var(--line) !important;
             border-radius: var(--radius-xl) !important;
@@ -520,40 +527,40 @@ def inject_tailwind_theme() -> None:
             padding: 0.4rem 0.5rem !important;
             position: relative;
             overflow: hidden;
-        }}
+        }
         div[data-testid="stVerticalBlockBorderWrapper"].st-key-verdict_panel::before,
-        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"]::before {{
+        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"]::before {
             content: "";
             position: absolute; top: 0; left: 0; right: 0; height: 4px;
             background: linear-gradient(90deg, var(--brand) 0%, var(--brand-light) 45%, var(--solar) 100%);
-        }}
-        .gadded-project-title {{
+        }
+        .gadded-project-title {
             font-size: 1.3rem;
             font-weight: 800;
             color: var(--ink);
             letter-spacing: -0.01em;
             margin-bottom: 0.15rem;
-        }}
-        .gadded-project-meta {{
+        }
+        .gadded-project-meta {
             font-size: 0.8rem;
             color: var(--muted);
             font-weight: 600;
             margin-bottom: 0.75rem;
-        }}
-        .gadded-verdict-divider {{
+        }
+        .gadded-verdict-divider {
             height: 1px;
             background: var(--line-soft);
             margin: 1.1rem 0 1.15rem;
-        }}
-        .gadded-verdict-footnote {{
+        }
+        .gadded-verdict-footnote {
             font-size: 0.76rem;
             color: var(--muted);
             font-weight: 500;
             margin-top: 0.6rem;
-        }}
+        }
 
         /* Status Badge */
-        .gadded-status-pill {{
+        .gadded-status-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.55rem;
@@ -562,18 +569,18 @@ def inject_tailwind_theme() -> None:
             font-weight: 800;
             font-size: 0.85rem;
             border: 1.5px solid;
-        }}
-        .gadded-status-icon {{
+        }
+        .gadded-status-icon {
             display: inline-flex; align-items: center; justify-content: center;
             width: 20px; height: 20px;
             border-radius: 9999px;
             font-size: 0.68rem;
             font-weight: 900;
             background: rgba(255,255,255,0.65);
-        }}
+        }
 
         /* Primary Action Buttons */
-        .stButton > button[kind="primary"] {{
+        .stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
             color: #FFFFFF !important;
             border: none !important;
@@ -583,14 +590,14 @@ def inject_tailwind_theme() -> None:
             padding: 0.75rem 1.75rem !important;
             box-shadow: var(--shadow-brand) !important;
             transition: all 0.18s ease-in-out !important;
-        }}
-        .stButton > button[kind="primary"]:hover {{
+        }
+        .stButton > button[kind="primary"]:hover {
             transform: translateY(-2px) !important;
             box-shadow: 0 14px 28px -8px rgba(5, 150, 105, 0.45) !important;
-        }}
+        }
 
         /* Preset Action Buttons */
-        .stButton > button:not([kind="primary"]) {{
+        .stButton > button:not([kind="primary"]) {
             background-color: var(--ink) !important;
             color: #FFFFFF !important;
             border: none !important;
@@ -599,15 +606,15 @@ def inject_tailwind_theme() -> None:
             font-size: 0.82rem !important;
             box-shadow: var(--shadow-sm) !important;
             transition: all 0.18s ease !important;
-        }}
-        .stButton > button:not([kind="primary"]):hover {{
+        }
+        .stButton > button:not([kind="primary"]):hover {
             background-color: var(--brand-dark) !important;
             box-shadow: var(--shadow-md) !important;
             transform: translateY(-1px) !important;
-        }}
+        }
 
         /* DOWNLOAD REPORT BUTTON STYLING */
-        div.stDownloadButton > button {{
+        div.stDownloadButton > button {
             background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
             color: #FFFFFF !important;
             border: 1px solid #334155 !important;
@@ -617,31 +624,31 @@ def inject_tailwind_theme() -> None:
             padding: 0.7rem 1.35rem !important;
             box-shadow: var(--shadow-md) !important;
             transition: all 0.18s ease !important;
-        }}
-        div.stDownloadButton > button:hover {{
+        }
+        div.stDownloadButton > button:hover {
             background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
             box-shadow: var(--shadow-lg) !important;
             transform: translateY(-1px) !important;
-        }}
+        }
 
         /* Button labels render as a <p> inside stMarkdownContainer, which the global
            stMarkdownContainer-p rule above forces to dark --ink — invisible on these dark
            button backgrounds. Override with higher selector specificity. */
         .stButton div[data-testid="stMarkdownContainer"] p,
-        div.stDownloadButton div[data-testid="stMarkdownContainer"] p {{
+        div.stDownloadButton div[data-testid="stMarkdownContainer"] p {
             color: #FFFFFF !important;
             font-weight: 700 !important;
             font-size: inherit !important;
-        }}
+        }
 
         /* Streamlit Tabs */
-        .stTabs [data-baseweb="tab-list"] {{
+        .stTabs [data-baseweb="tab-list"] {
             gap: 0.3rem !important;
             background-color: #EAEEF2 !important;
             padding: 0.4rem !important;
             border-radius: var(--radius-md) !important;
-        }}
-        .stTabs [data-baseweb="tab"] {{
+        }
+        .stTabs [data-baseweb="tab"] {
             border-radius: 10px !important;
             padding: 0.6rem 1.25rem !important;
             font-weight: 700 !important;
@@ -649,32 +656,32 @@ def inject_tailwind_theme() -> None:
             color: var(--ink-soft) !important;
             background-color: transparent !important;
             transition: all 0.15s ease !important;
-        }}
-        .stTabs [data-baseweb="tab"]:hover {{
+        }
+        .stTabs [data-baseweb="tab"]:hover {
             color: var(--brand-dark) !important;
-        }}
-        .stTabs [aria-selected="true"] {{
+        }
+        .stTabs [aria-selected="true"] {
             background-color: var(--surface) !important;
             color: var(--brand-dark) !important;
             box-shadow: var(--shadow-sm) !important;
-        }}
-        .stTabs [data-baseweb="tab-highlight"] {{ background-color: transparent !important; }}
-        .stTabs [data-baseweb="tab-border"] {{ display: none !important; }}
+        }
+        .stTabs [data-baseweb="tab-highlight"] { background-color: transparent !important; }
+        .stTabs [data-baseweb="tab-border"] { display: none !important; }
 
         /* Info / warning / error callouts */
-        div[data-testid="stAlert"] {{
+        div[data-testid="stAlert"] {
             border-radius: var(--radius-md) !important;
             border: 1.5px solid var(--line) !important;
             box-shadow: var(--shadow-sm) !important;
-        }}
+        }
 
         /* Footer */
-        .gadded-footer {{
+        .gadded-footer {
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
             color: var(--muted); font-size: 0.78rem; font-weight: 500;
             padding-top: 1.75rem; margin-top: 2rem;
             border-top: 1px solid var(--line);
-        }}
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1025,34 +1032,31 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
     if run_llm:
         client = get_gemini_client()
         search_client = get_groq_client()
-        if client is None:
-            reg_error = "GEMINI_API_KEY not set in environment — AI legal explanation and vendor/financing extraction skipped."
+        try:
+            from gadded.regulatory import explain_with_llm
+            question = "Can this factory install this rooftop solar system under the selected connection model?"
+            retrieved = retrieve(question, corpus, top_k=2, client=client)
+            reg_explanation = explain_with_llm(question, retrieved, reg_findings, client)
+        except Exception as e:
+            reg_error = f"Regulatory explanation unavailable this run ({type(e).__name__}) – {e}."
+        if search_client is None:
+            vendor_warnings = ["GROQ_API_KEY not set in environment — vendor/financing web search skipped."]
+            financing_warnings = list(vendor_warnings)
         else:
             try:
-                from gadded.regulatory import explain_with_llm
-                question = "Can this factory install this rooftop solar system under the selected connection model?"
-                retrieved = retrieve(question, corpus, top_k=2, client=client)
-                reg_explanation = explain_with_llm(question, retrieved, reg_findings, client)
+                from gadded.vendors import discover_vendors
+                vendors, vendor_warnings = discover_vendors(
+                    ai.location.address or "Egypt", rec.recommendedCapacityKw,
+                    ai.connectionModel, search_client, client, max_candidates=5,
+                )
             except Exception as e:
-                reg_error = f"Regulatory explanation unavailable this run ({type(e).__name__})."
-            if search_client is None:
-                vendor_warnings = ["GROQ_API_KEY not set in environment — vendor/financing web search skipped."]
-                financing_warnings = list(vendor_warnings)
-            else:
-                try:
-                    from gadded.vendors import discover_vendors
-                    vendors, vendor_warnings = discover_vendors(
-                        ai.location.address or "Egypt", rec.recommendedCapacityKw,
-                        ai.connectionModel, search_client, client, max_candidates=5,
-                    )
-                except Exception as e:
-                    vendor_warnings = [f"vendor discovery unavailable this run ({type(e).__name__})"]
-                try:
-                    financing_options, financing_warnings = discover_financing_options(
-                        rec.recommendedCapacityKw, row["capex_egp"], search_client, client, max_candidates=5,
-                    )
-                except Exception as e:
-                    financing_warnings = [f"financing discovery unavailable this run ({type(e).__name__})"]
+                vendor_warnings = [f"vendor discovery unavailable this run ({type(e).__name__}) – {e}"]
+            try:
+                financing_options, financing_warnings = discover_financing_options(
+                    rec.recommendedCapacityKw, row["capex_egp"], search_client, client, max_candidates=5,
+                )
+            except Exception as e:
+                financing_warnings = [f"financing discovery unavailable this run ({type(e).__name__}) – {e}"]
 
     material_warnings = [
         w for w in load_profile.result.warnings
@@ -1066,7 +1070,7 @@ def run_pipeline(ai: AssessmentInput, run_llm: bool):
         regulatoryPrompt="reg-explain-0.1.0", vendorPrompt="vendor-discovery-0.1.0",
     )
     result = assemble_result(
-        run_id=f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
+        run_id=f"run-{datetime.now(UTC).strftime('%Y%m%dT%H%M%S')}",
         assessment_id=ai.projectId, status=feas.status, technical=rec, financial=scenarios,
         risk=risk, gis_findings=gis_findings, regulatory_findings=reg_findings, vendors=vendors,
         warnings=list(load_profile.result.warnings) + list(vendor_warnings), versions=versions,
@@ -1294,7 +1298,7 @@ with st.container(border=True, key="verdict_panel"):
         status_badge(result.status)
 
     with hdr_col2:
-        html_report = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
+        html_report = render_html(result, ai.projectName, datetime.now(UTC).isoformat())
         st.download_button(
             "📥 Download Report (HTML)",
             data=html_report,
