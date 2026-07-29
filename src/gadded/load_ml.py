@@ -5,9 +5,7 @@ is not ML — it is a fixed lookup). Pipeline:
 
 1. Generate a synthetic population of "facilities" (parametric variants of the six
    sector|shift archetypes in ``data/load_archetypes/archetypes.json``, with jittered
-   parameters and hourly noise) — there is no real Egyptian interval-metering data
-   available for this hackathon, so this stands in for it and is labeled SYNTHETIC
-   throughout. It does not represent measured factories.
+   parameters and hourly noise) It does not represent measured factories.
 2. Cluster the facilities' normalized weekly (168-hour) load shapes with KMeans. The
    number of clusters is chosen by silhouette score sweep, not by intuition.
 3. Train a classifier that maps simple user-facing inputs (sector, shift pattern,
@@ -58,7 +56,9 @@ class SyntheticFacility:
     working_days_per_week: int
     shift_start_hour: int
     shift_end_hour: int
-    combo_label: str  # ground-truth sector|shift, evaluation only, never a model feature
+    combo_label: (
+        str  # ground-truth sector|shift, evaluation only, never a model feature
+    )
     week_shape: np.ndarray  # normalized 168-length
 
 
@@ -77,7 +77,9 @@ class LoadMlBundle:
 # --------------------------------------------------------------------------- #
 
 
-def generate_synthetic_facilities(seed: int = 42, n_per_combo: int = 15) -> list[SyntheticFacility]:
+def generate_synthetic_facilities(
+    seed: int = 42, n_per_combo: int = 15
+) -> list[SyntheticFacility]:
     """Build a labeled synthetic facility population from the archetype spec.
 
     Explicitly SYNTHETIC: parametric jitter + noise around six known archetype
@@ -96,10 +98,14 @@ def generate_synthetic_facilities(seed: int = 42, n_per_combo: int = 15) -> list
 
         for i in range(n_per_combo):
             jittered_base = float(np.clip(base * (1 + rng.normal(0, 0.15)), 0.02, 0.95))
-            jittered_weekend = float(np.clip(weekend_factor * (1 + rng.normal(0, 0.10)), 0.3, 1.2))
+            jittered_weekend = float(
+                np.clip(weekend_factor * (1 + rng.normal(0, 0.10)), 0.3, 1.2)
+            )
             start = int(np.clip(default_start + rng.integers(-1, 2), 0, 22))
             end = int(np.clip(default_end + rng.integers(-1, 2), start + 1, 24))
-            working_days = int(np.clip(7 - len(weekend_days) + rng.integers(-1, 2), 4, 7))
+            working_days = int(
+                np.clip(7 - len(weekend_days) + rng.integers(-1, 2), 4, 7)
+            )
 
             shape = week_shape_from_params(
                 jittered_base, jittered_weekend, weekend_days, working_days, start, end
@@ -128,7 +134,11 @@ def generate_synthetic_facilities(seed: int = 42, n_per_combo: int = 15) -> list
 
 
 def encode_features(
-    sector: str, shift_pattern: str, working_days_per_week: int, shift_start_hour: int, shift_end_hour: int
+    sector: str,
+    shift_pattern: str,
+    working_days_per_week: int,
+    shift_start_hour: int,
+    shift_end_hour: int,
 ) -> list[float]:
     """Simple explicit one-hot + numeric encoding — no fitted encoder object to version."""
     return [
@@ -145,7 +155,11 @@ def encode_features(
 
 def _facility_features(f: SyntheticFacility) -> list[float]:
     return encode_features(
-        f.sector, f.shift_pattern, f.working_days_per_week, f.shift_start_hour, f.shift_end_hour
+        f.sector,
+        f.shift_pattern,
+        f.working_days_per_week,
+        f.shift_start_hour,
+        f.shift_end_hour,
     )
 
 
@@ -165,7 +179,9 @@ def _choose_k(shapes: np.ndarray, seed: int, k_range: range = range(2, 9)) -> in
     return best_k
 
 
-def train_load_ml_model(seed: int = 42, n_per_combo: int = 15, test_size: float = 0.25) -> LoadMlBundle:
+def train_load_ml_model(
+    seed: int = 42, n_per_combo: int = 15, test_size: float = 0.25
+) -> LoadMlBundle:
     """Full reproducible training script: generate -> split -> cluster -> classify -> evaluate."""
     facilities = generate_synthetic_facilities(seed=seed, n_per_combo=n_per_combo)
 
@@ -182,7 +198,9 @@ def train_load_ml_model(seed: int = 42, n_per_combo: int = 15, test_size: float 
     k = _choose_k(train_shapes, seed)
     kmeans = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(train_shapes)
     train_labels = kmeans.labels_
-    test_labels = kmeans.predict(test_shapes)  # test facilities assigned via train-fit geometry
+    test_labels = kmeans.predict(
+        test_shapes
+    )  # test facilities assigned via train-fit geometry
 
     cluster_shapes = {
         int(c): train_shapes[train_labels == c].mean(axis=0) for c in range(k)
@@ -224,7 +242,10 @@ def train_load_ml_model(seed: int = 42, n_per_combo: int = 15, test_size: float 
         ),
     }
     return LoadMlBundle(
-        classifier=classifier, cluster_shapes=cluster_shapes, version=LOAD_ML_MODEL_VERSION, metrics=metrics
+        classifier=classifier,
+        cluster_shapes=cluster_shapes,
+        version=LOAD_ML_MODEL_VERSION,
+        metrics=metrics,
     )
 
 
@@ -233,11 +254,15 @@ def train_load_ml_model(seed: int = 42, n_per_combo: int = 15, test_size: float 
 # --------------------------------------------------------------------------- #
 
 
-def save_bundle(bundle: LoadMlBundle, path: str | Path = _ARTIFACT_DIR / "load_ml_bundle.joblib") -> None:
+def save_bundle(
+    bundle: LoadMlBundle, path: str | Path = _ARTIFACT_DIR / "load_ml_bundle.joblib"
+) -> None:
     joblib.dump(bundle, path)
 
 
-def load_bundle(path: str | Path = _ARTIFACT_DIR / "load_ml_bundle.joblib") -> LoadMlBundle:
+def load_bundle(
+    path: str | Path = _ARTIFACT_DIR / "load_ml_bundle.joblib",
+) -> LoadMlBundle:
     return joblib.load(path)
 
 
@@ -270,8 +295,14 @@ def predict_load_ml(
                 ai.factory.sector,
                 ai.factory.shiftPattern,
                 ai.factory.workingDaysPerWeek,
-                ai.factory.shiftStartHour or default_shift_hours(load_archetype_spec(), ai.factory.shiftPattern)[0],
-                ai.factory.shiftEndHour or default_shift_hours(load_archetype_spec(), ai.factory.shiftPattern)[1],
+                ai.factory.shiftStartHour
+                or default_shift_hours(load_archetype_spec(), ai.factory.shiftPattern)[
+                    0
+                ],
+                ai.factory.shiftEndHour
+                or default_shift_hours(load_archetype_spec(), ai.factory.shiftPattern)[
+                    1
+                ],
             )
         ]
     )
@@ -286,7 +317,9 @@ def predict_load_ml(
             f"ML classifier confidence low ({max_proba:.2f}); fell back to deterministic "
             f"archetype baseline. model_version={bundle.version}, fallback_version={fallback.result.modelVersion}"
         )
-        fallback.result.modelVersion = f"{bundle.version}+fallback:{fallback.result.modelVersion}"
+        fallback.result.modelVersion = (
+            f"{bundle.version}+fallback:{fallback.result.modelVersion}"
+        )
         return fallback
 
     week_shape = bundle.cluster_shapes[cluster_id]
