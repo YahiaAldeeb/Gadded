@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
@@ -38,19 +39,25 @@ from gadded.weather import load_cached_weather
 
 TOKENS = {
     "bg_base": "#F8FAFC", "bg_surface": "#FFFFFF", "bg_muted": "#F1F5F9",
-    "text_primary": "#0F172A", "text_secondary": "#475569", "text_muted": "#64748B",
+    "text_primary": "#0B1220", "text_secondary": "#475569", "text_muted": "#64748B",
     "border": "#E2E8F0", "solar": "#D97706", "solar_soft": "#FEF3C7",
-    "energy": "#059669", "energy_soft": "#D1FAE5", "technical": "#1E293B",
-    "ai": "#6255D9", "success": "#166534", "warning": "#92400E",
-    "critical": "#991B1B", "unknown": "#475569",
+    "energy": "#059669", "energy_soft": "#D1FAE5", "technical": "#0B1220",
+    "ai": "#6255D9", "success": "#059669", "warning": "#B45309",
+    "critical": "#BE123C", "unknown": "#475569",
+    # Sequential ramp (single hue, light -> dark) for magnitude-only series,
+    # e.g. Monte Carlo P10/P50/P90 — same measure, not distinct categories.
+    "seq_light": "#A7E8CB", "seq_mid": "#10B981", "seq_dark": "#065F46",
+    # Neutral reference/boundary line color (kept out of the rose "critical" slot
+    # so a physical/roof limit line never reads as a regulatory blocker).
+    "boundary": "#94A3B8",
 }
 
 STATUS_STYLE = {
     "likely_feasible": ("✓", "Likely Feasible", TOKENS["success"], TOKENS["energy_soft"], "border-emerald-300 text-emerald-800 bg-emerald-50"),
     "feasible_with_conditions": ("⚠", "Feasible with Conditions", TOKENS["warning"], TOKENS["solar_soft"], "border-amber-300 text-amber-800 bg-amber-50"),
-    "high_risk": ("✕", "High Regulatory / Site Risk", TOKENS["critical"], "#FEE2E2", "border-rose-300 text-rose-800 bg-rose-50"),
-    "potentially_ineligible": ("✕", "Potentially Ineligible (Preliminary)", TOKENS["critical"], "#FEE2E2", "border-rose-300 text-rose-800 bg-rose-50"),
-    "insufficient_information": ("?", "Insufficient Information", TOKENS["unknown"], TOKENS["bg_muted"], "border-slate-300 text-slate-700 bg-slate-100"),
+    "high_risk": ("✕", "High Regulatory / Site Risk", TOKENS["critical"], "#FFE4E9", "border-rose-300 text-rose-800 bg-rose-50"),
+    "potentially_ineligible": ("✕", "Potentially Ineligible (Preliminary)", TOKENS["critical"], "#FFE4E9", "border-rose-300 text-rose-800 bg-rose-50"),
+    "insufficient_information": ("?", "Insufficient Information", TOKENS["unknown"], "#F1F5F9", "border-slate-300 text-slate-700 bg-slate-100"),
 }
 
 DISCLAIMER = (
@@ -60,37 +67,106 @@ DISCLAIMER = (
 
 
 def inject_tailwind_theme() -> None:
+    # st.markdown(unsafe_allow_html=True) never executes injected <script> tags — that's a
+    # hard browser rule for HTML inserted via innerHTML, not a Streamlit limitation. The
+    # Tailwind Play CDN tag was silently dead: no Tailwind utility class anywhere in this file
+    # was ever actually being applied. components.html() renders in a real iframe, where
+    # scripts DO execute; since the iframe is same-origin, it can reach into
+    # window.parent.document and attach a real <script> element there via createElement (not
+    # innerHTML), which the browser does execute. Tailwind's CDN script then JIT-scans the
+    # actual Streamlit page — including on reruns, via its own MutationObserver.
+    components.html(
+        """
+        <script>
+        if (!window.parent.document.getElementById('gadded-tailwind-cdn')) {
+            const s = window.parent.document.createElement('script');
+            s.id = 'gadded-tailwind-cdn';
+            s.src = 'https://cdn.tailwindcss.com';
+            window.parent.document.head.appendChild(s);
+        }
+        </script>
+        """,
+        height=0,
+    )
     st.markdown(
         f"""
-        <!-- Tailwind CSS CDN -->
-        <script src="https://cdn.tailwindcss.com"></script>
         <!-- Google Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
         <style>
+        :root {{
+            --ink: #0B1220;
+            --ink-soft: #334155;
+            --muted: #64748B;
+            --muted-soft: #94A3B8;
+            --line: #E2E8F0;
+            --line-soft: #EDF1F5;
+            --surface: #FFFFFF;
+            --surface-alt: #FBFCFE;
+            --canvas: #F6F8FA;
+            --brand: #059669;
+            --brand-dark: #047857;
+            --brand-deep: #065F46;
+            --brand-light: #10B981;
+            --brand-soft: #ECFDF5;
+            --brand-ring: rgba(5, 150, 105, 0.16);
+            --solar: #D97706;
+            --solar-dark: #B45309;
+            --solar-soft: #FFFBEB;
+            --violet: #6255D9;
+            --violet-dark: #4C3FC4;
+            --violet-soft: #F1EFFE;
+            --rose: #E11D48;
+            --rose-dark: #BE123C;
+            --rose-soft: #FFF1F2;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 16px 36px -10px rgba(15, 23, 42, 0.14);
+            --shadow-brand: 0 10px 24px -8px rgba(5, 150, 105, 0.35);
+        }}
+
         /* Global Reset & Typography */
         html, body, [class*="css"], .stApp {{
             font-family: 'Plus Jakarta Sans', sans-serif !important;
-            background-color: #F8FAFC !important;
-            color: #0F172A !important;
+            background-color: var(--canvas) !important;
+            color: var(--ink) !important;
+        }}
+
+        .stApp {{
+            background-image:
+                radial-gradient(circle at 8% 0%, rgba(5, 150, 105, 0.05), transparent 32%),
+                radial-gradient(circle at 92% 6%, rgba(217, 119, 6, 0.045), transparent 30%) !important;
+            background-attachment: fixed !important;
         }}
 
         code, pre, .font-mono {{
             font-family: 'Geist Mono', monospace !important;
         }}
 
+        .tabnum {{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }}
+
+        ::selection {{ background: var(--brand-ring); color: var(--ink); }}
+
         /* Responsive Container */
         .main .block-container {{
-            max-width: 1280px !important;
-            padding-top: 1rem !important;
-            padding-bottom: 3rem !important;
+            max-width: 1180px !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 4rem !important;
+        }}
+
+        @media (max-width: 640px) {{
+            .main .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; }}
         }}
 
         /* STREAMLIT CONTROLS OVERRIDES */
         label, div[data-testid="stMarkdownContainer"] p, .stMarkdown label, .stSlider label {{
-            color: #0F172A !important;
+            color: var(--ink) !important;
             font-weight: 700 !important;
             font-size: 0.9rem !important;
         }}
@@ -102,168 +178,398 @@ def inject_tailwind_theme() -> None:
         .stTextInput > div > div > input,
         .stNumberInput > div > div > input,
         .stSelectbox > div > div {{
-            background-color: #FFFFFF !important;
-            color: #0F172A !important;
+            background-color: var(--surface) !important;
+            color: var(--ink) !important;
             border: 1.5px solid #CBD5E1 !important;
-            border-radius: 12px !important;
-            font-size: 0.925rem !important;
+            border-radius: 10px !important;
+            font-size: 0.9rem !important;
             font-weight: 600 !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+            box-shadow: none !important;
+            transition: border-color 0.15s ease !important;
+        }}
+
+        div[data-baseweb="select"]:focus-within > div,
+        div[data-baseweb="base-input"]:focus-within {{
+            border-color: var(--brand) !important;
         }}
 
         div[data-baseweb="select"] span {{
-            color: #0F172A !important;
+            color: var(--ink) !important;
             font-weight: 700 !important;
         }}
 
         .stNumberInput button {{
             background-color: #F1F5F9 !important;
-            color: #0F172A !important;
+            color: var(--ink) !important;
             border: 1px solid #CBD5E1 !important;
             border-radius: 8px !important;
         }}
 
-        /* STREAMLIT EXPANDER OVERRIDE (Fix dark summary bar & dark contrast) */
+        hr {{ border-color: var(--line) !important; }}
+
+        /* STREAMLIT EXPANDER OVERRIDE */
         .stExpander {{
-            background-color: #FFFFFF !important;
-            border: 1.5px solid #E2E8F0 !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04) !important;
-            margin-bottom: 1.25rem !important;
+            background-color: var(--surface) !important;
+            border: 1.5px solid var(--line) !important;
+            border-radius: 14px !important;
+            box-shadow: var(--shadow-sm) !important;
+            margin-bottom: 1rem !important;
             overflow: hidden !important;
         }}
 
         .stExpander > details > summary {{
-            background-color: #F8FAFC !important;
-            color: #0F172A !important;
-            border-bottom: 1.5px solid #E2E8F0 !important;
+            background-color: var(--surface) !important;
+            color: var(--ink) !important;
             font-weight: 800 !important;
-            font-size: 1rem !important;
-            padding: 0.85rem 1.25rem !important;
-            border-radius: 16px 16px 0 0 !important;
+            font-size: 0.95rem !important;
+            padding: 0.8rem 1.15rem !important;
+        }}
+
+        .stExpander > details[open] > summary {{
+            border-bottom: 1.5px solid var(--line-soft) !important;
         }}
 
         .stExpander > details > summary:hover {{
-            background-color: #F1F5F9 !important;
+            background-color: #FAFBFC !important;
         }}
 
         .stExpander > details > summary p,
         .stExpander > details > summary span,
         .stExpander > details > summary div {{
-            color: #0F172A !important;
+            color: var(--ink) !important;
             font-weight: 800 !important;
-            font-size: 1rem !important;
+            font-size: 0.95rem !important;
         }}
 
-        /* CLEAN MINIMAL HERO BANNER WITH HIGH CONTRAST TEXT */
-        .gadded-hero-minimal {{
-            background: linear-gradient(135deg, #064E3B 0%, #0F172A 100%);
+        /* ---------- HERO ---------- */
+        /* Higher-specificity override: the global stMarkdownContainer p rule above forces
+           dark --ink text on every <p>, which would make the hero's light-on-dark copy
+           unreadable. */
+        div[data-testid="stMarkdownContainer"] .gadded-hero p {{
+            color: rgba(226, 232, 240, 0.92) !important;
+            font-weight: 500 !important;
+            font-size: inherit !important;
+        }}
+        div[data-testid="stMarkdownContainer"] .gadded-hero p.gadded-hero-arabic {{
+            color: #6EE7B7 !important;
+            font-weight: 800 !important;
+        }}
+        .gadded-hero {{
+            position: relative;
+            background: radial-gradient(circle at 12% 15%, rgba(16, 185, 129, 0.38), transparent 42%),
+                        radial-gradient(circle at 88% -4%, rgba(217, 119, 6, 0.24), transparent 38%),
+                        linear-gradient(160deg, #04241C 0%, #0A1A16 38%, #0B1220 78%, #0D1526 100%);
             color: #FFFFFF;
-            border-radius: 20px;
-            padding: 2rem 2.25rem;
-            box-shadow: 0 12px 28px -6px rgba(6, 78, 59, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem 2.6rem 2rem;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }}
+        .gadded-hero::after {{
+            content: "";
+            position: absolute; inset: 0;
+            background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px);
+            background-size: 22px 22px;
+            mask-image: linear-gradient(180deg, rgba(0,0,0,0.5), transparent 75%);
+            pointer-events: none;
+        }}
+        .gadded-hero-badge {{
+            background: rgba(255,255,255,0.10);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.22);
+        }}
+        .gadded-hero-badge .pulse-dot {{
+            width: 7px; height: 7px; border-radius: 9999px;
+            background: #34D399;
+            box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+            animation: gadded-pulse 2.2s ease-out infinite;
+        }}
+        @keyframes gadded-pulse {{
+            0%   {{ box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }}
+            70%  {{ box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }}
+        }}
+        .gadded-hero-meter {{
+            margin-top: 1.75rem;
+            height: 4px;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #34D399 0%, #A7F3D0 28%, #FCD34D 55%, #D97706 78%, rgba(217,119,6,0.15) 100%);
+            opacity: 0.85;
+        }}
+        .gadded-hero-stats {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.75rem;
+            margin-top: 1.1rem;
+        }}
+        .gadded-hero-stat-label {{
+            font-size: 0.66rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 0.2rem;
+        }}
+        .gadded-hero-stat-value {{
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.92);
         }}
 
-        /* SECTION BANNER STYLING */
-        .gadded-section-banner {{
+        /* ---------- EYEBROW SECTION HEADERS ---------- */
+        .gadded-eyebrow-row {{
             display: flex;
             align-items: center;
-            gap: 0.85rem;
-            background: #FFFFFF;
-            border: 1.5px solid #E2E8F0;
-            border-left: 5px solid #059669;
-            border-radius: 14px;
-            padding: 0.85rem 1.25rem;
-            margin-top: 1.25rem;
-            margin-bottom: 0.85rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            gap: 0.7rem;
+            margin-top: 2.75rem;
+            margin-bottom: 0.4rem;
+        }}
+        .gadded-eyebrow-num {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--surface);
+            background: linear-gradient(145deg, var(--ink) 0%, #1E293B 100%);
+            border-radius: 9999px;
+            width: 24px;
+            height: 24px;
+            letter-spacing: 0;
+            flex: none;
+        }}
+        .gadded-eyebrow-line {{
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--line) 0%, transparent 100%);
+        }}
+        .gadded-eyebrow-label {{
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--brand-dark);
+            background: var(--brand-soft);
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }}
+        .gadded-section-title {{
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.015em;
+            margin-bottom: 0.2rem;
+        }}
+        .gadded-section-sub {{
+            font-size: 0.86rem;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            max-width: 62ch;
         }}
 
-        /* PRESET CARD STYLING */
+        /* ---------- CARDS ---------- */
         .gadded-preset-card {{
-            background: #FFFFFF;
-            border: 1.5px solid #E2E8F0;
+            position: relative;
+            background: var(--surface);
+            border: 1.5px solid var(--line);
             border-radius: 16px;
             padding: 1.2rem;
-            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }}
         .gadded-preset-card:hover {{
-            box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.08);
-            border-color: #059669;
-            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: #A7D8C4;
+            transform: translateY(-3px);
         }}
         .gadded-preset-card.active {{
-            border-color: #059669;
-            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2), 0 6px 14px -2px rgba(5, 150, 105, 0.15);
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14), var(--shadow-md);
+        }}
+        .gadded-preset-check {{
+            position: absolute;
+            top: -9px; right: -9px;
+            width: 24px; height: 24px;
+            border-radius: 9999px;
+            background: var(--brand);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 900;
+            box-shadow: var(--shadow-md);
+            border: 2px solid var(--canvas);
+        }}
+        .gadded-preset-icon {{
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.05rem;
+            background: var(--canvas);
+            border: 1px solid var(--line-soft);
         }}
 
         .gadded-glass-card {{
-            background: #FFFFFF;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 16px;
-            padding: 1.25rem;
-            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
-            transition: all 0.2s ease;
+            background: var(--surface);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 1.35rem 1.4rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.18s ease;
+            height: 100%;
         }}
         .gadded-glass-card:hover {{
-            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.06);
-            border-color: #059669;
+            box-shadow: var(--shadow-md);
+            border-color: #CBD5E1;
+            transform: translateY(-2px);
+        }}
+        .gadded-glass-card.accent-brand {{ border-top: 3px solid var(--brand); }}
+        .gadded-glass-card.accent-ink {{ border-top: 3px solid var(--ink); }}
+        .gadded-scenario-row {{
+            display: flex; justify-content: space-between; align-items: baseline;
+            padding: 0.42rem 0; border-bottom: 1px dashed var(--line-soft);
+            font-size: 0.78rem; color: var(--ink-soft);
+        }}
+        .gadded-scenario-row:last-child {{ border-bottom: none; }}
+        .gadded-scenario-row .val {{
+            font-weight: 800; color: var(--ink); font-family: 'Geist Mono', monospace;
+            font-variant-numeric: tabular-nums;
         }}
 
-        /* KPI METRIC CARDS */
+        /* Unified finding/list card (GIS, Regulatory, Vendor, Financing evidence) */
+        .gadded-finding-card {{
+            background: var(--surface);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 1.1rem 1.3rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            gap: 0.95rem;
+            align-items: flex-start;
+            transition: all 0.15s ease;
+        }}
+        .gadded-finding-card:hover {{
+            border-color: #CBD5E1;
+            box-shadow: var(--shadow-md);
+        }}
+        .gadded-finding-icon {{
+            flex: none;
+            width: 36px; height: 36px;
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+        }}
+
+        /* ---------- KPI METRIC CARDS ---------- */
         .gadded-kpi-card {{
-            background: #FFFFFF;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 16px;
-            padding: 1.2rem 0.85rem;
-            text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            position: relative;
+            background: var(--surface);
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 1.2rem 1.15rem;
+            box-shadow: var(--shadow-sm);
             height: 100%;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
+            overflow: hidden;
         }}
         .gadded-kpi-card:hover {{
             transform: translateY(-2px);
-            border-color: #059669;
-            box-shadow: 0 8px 16px -2px rgba(5, 150, 105, 0.12);
+            box-shadow: var(--shadow-md);
+            border-color: #CBD5E1;
         }}
         .gadded-kpi-card .kpi-icon-bg {{
             width: 38px;
             height: 38px;
-            border-radius: 10px;
-            background-color: #F1F5F9;
+            border-radius: 11px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 0.45rem;
+            margin-bottom: 0.7rem;
+            font-size: 1.05rem;
         }}
+        .kpi-icon-brand {{ background: var(--brand-soft); }}
+        .kpi-icon-solar {{ background: var(--solar-soft); }}
+        .kpi-icon-violet {{ background: var(--violet-soft); }}
+        .kpi-icon-slate {{ background: #F1F5F9; }}
         .gadded-kpi-card .kpi-label {{
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            color: #64748B;
+            color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.32rem;
         }}
         .gadded-kpi-card .kpi-value {{
-            font-size: 1.35rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            color: #0F172A;
+            color: var(--ink);
             word-break: keep-all;
+            letter-spacing: -0.015em;
+            line-height: 1.15;
+        }}
+
+        /* ---------- VERDICT PANEL (status + headline KPIs — the money shot) ---------- */
+        div[data-testid="stVerticalBlockBorderWrapper"].st-key-verdict_panel,
+        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"] {{
+            background: linear-gradient(180deg, var(--surface) 0%, var(--surface-alt) 100%) !important;
+            border: 1.5px solid var(--line) !important;
+            border-radius: var(--radius-xl) !important;
+            box-shadow: var(--shadow-lg) !important;
+            padding: 0.4rem 0.5rem !important;
+            position: relative;
+            overflow: hidden;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"].st-key-verdict_panel::before,
+        .st-key-verdict_panel > div[data-testid="stVerticalBlockBorderWrapper"]::before {{
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--brand) 0%, var(--brand-light) 45%, var(--solar) 100%);
+        }}
+        .gadded-project-title {{
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+            margin-bottom: 0.15rem;
+        }}
+        .gadded-project-meta {{
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }}
+        .gadded-verdict-divider {{
+            height: 1px;
+            background: var(--line-soft);
+            margin: 1.1rem 0 1.15rem;
+        }}
+        .gadded-verdict-footnote {{
+            font-size: 0.76rem;
+            color: var(--muted);
+            font-weight: 500;
+            margin-top: 0.6rem;
         }}
 
         /* Status Badge */
         .gadded-status-pill {{
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.55rem;
             border-radius: 9999px;
-            padding: 0.55rem 1.25rem;
+            padding: 0.48rem 1.05rem;
             font-weight: 800;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             border: 1.5px solid;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }}
+        .gadded-status-icon {{
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px;
+            border-radius: 9999px;
+            font-size: 0.68rem;
+            font-weight: 900;
+            background: rgba(255,255,255,0.65);
         }}
 
         /* Primary Action Buttons */
@@ -275,28 +581,28 @@ def inject_tailwind_theme() -> None:
             font-weight: 800 !important;
             font-size: 1rem !important;
             padding: 0.75rem 1.75rem !important;
-            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3) !important;
-            transition: all 0.2s ease-in-out !important;
+            box-shadow: var(--shadow-brand) !important;
+            transition: all 0.18s ease-in-out !important;
         }}
         .stButton > button[kind="primary"]:hover {{
             transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4) !important;
+            box-shadow: 0 14px 28px -8px rgba(5, 150, 105, 0.45) !important;
         }}
 
         /* Preset Action Buttons */
         .stButton > button:not([kind="primary"]) {{
-            background-color: #059669 !important;
+            background-color: var(--ink) !important;
             color: #FFFFFF !important;
             border: none !important;
-            border-radius: 10px !important;
+            border-radius: 9px !important;
             font-weight: 700 !important;
-            font-size: 0.85rem !important;
-            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2) !important;
-            transition: all 0.2s ease !important;
+            font-size: 0.82rem !important;
+            box-shadow: var(--shadow-sm) !important;
+            transition: all 0.18s ease !important;
         }}
         .stButton > button:not([kind="primary"]):hover {{
-            background-color: #047857 !important;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+            background-color: var(--brand-dark) !important;
+            box-shadow: var(--shadow-md) !important;
             transform: translateY(-1px) !important;
         }}
 
@@ -307,35 +613,67 @@ def inject_tailwind_theme() -> None:
             border: 1px solid #334155 !important;
             border-radius: 12px !important;
             font-weight: 800 !important;
-            font-size: 0.9rem !important;
+            font-size: 0.88rem !important;
             padding: 0.7rem 1.35rem !important;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25) !important;
-            transition: all 0.2s ease !important;
+            box-shadow: var(--shadow-md) !important;
+            transition: all 0.18s ease !important;
         }}
         div.stDownloadButton > button:hover {{
             background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35) !important;
+            box-shadow: var(--shadow-lg) !important;
             transform: translateY(-1px) !important;
+        }}
+
+        /* Button labels render as a <p> inside stMarkdownContainer, which the global
+           stMarkdownContainer-p rule above forces to dark --ink — invisible on these dark
+           button backgrounds. Override with higher selector specificity. */
+        .stButton div[data-testid="stMarkdownContainer"] p,
+        div.stDownloadButton div[data-testid="stMarkdownContainer"] p {{
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+            font-size: inherit !important;
         }}
 
         /* Streamlit Tabs */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 0.5rem !important;
-            background-color: #E2E8F0 !important;
-            padding: 0.45rem !important;
-            border-radius: 14px !important;
+            gap: 0.3rem !important;
+            background-color: #EAEEF2 !important;
+            padding: 0.4rem !important;
+            border-radius: var(--radius-md) !important;
         }}
         .stTabs [data-baseweb="tab"] {{
             border-radius: 10px !important;
-            padding: 0.65rem 1.35rem !important;
+            padding: 0.6rem 1.25rem !important;
             font-weight: 700 !important;
-            color: #475569 !important;
+            font-size: 0.87rem !important;
+            color: var(--ink-soft) !important;
             background-color: transparent !important;
+            transition: all 0.15s ease !important;
+        }}
+        .stTabs [data-baseweb="tab"]:hover {{
+            color: var(--brand-dark) !important;
         }}
         .stTabs [aria-selected="true"] {{
-            background-color: #FFFFFF !important;
-            color: #059669 !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+            background-color: var(--surface) !important;
+            color: var(--brand-dark) !important;
+            box-shadow: var(--shadow-sm) !important;
+        }}
+        .stTabs [data-baseweb="tab-highlight"] {{ background-color: transparent !important; }}
+        .stTabs [data-baseweb="tab-border"] {{ display: none !important; }}
+
+        /* Info / warning / error callouts */
+        div[data-testid="stAlert"] {{
+            border-radius: var(--radius-md) !important;
+            border: 1.5px solid var(--line) !important;
+            box-shadow: var(--shadow-sm) !important;
+        }}
+
+        /* Footer */
+        .gadded-footer {{
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            color: var(--muted); font-size: 0.78rem; font-weight: 500;
+            padding-top: 1.75rem; margin-top: 2rem;
+            border-top: 1px solid var(--line);
         }}
         </style>
         """,
@@ -375,34 +713,139 @@ def lifetime_savings_egp(scenario, assumptions) -> float:
     return sum(savings_stream(year1_gross, scenario.annualOpexEgp, n, esc, deg))
 
 
-def section_banner(icon: str, title: str, subtitle: str) -> None:
+def section_banner(num: str, icon: str, title: str, subtitle: str) -> None:
     st.markdown(
         f"""
-        <div class="gadded-section-banner">
-            <span class="text-2xl">{icon}</span>
-            <div>
-                <div class="font-extrabold text-[15px] text-slate-900 leading-snug">{title}</div>
-                <div class="text-[12px] text-slate-600 font-medium">{subtitle}</div>
-            </div>
+        <div class="gadded-eyebrow-row">
+            <span class="gadded-eyebrow-num">{num}</span>
+            <span class="gadded-eyebrow-label">{icon} &nbsp;STEP</span>
+            <span class="gadded-eyebrow-line"></span>
         </div>
+        <div class="gadded-section-title">{title}</div>
+        <div class="gadded-section-sub">{subtitle}</div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def metric_card(col, label: str, value: str, icon: str = "⚡") -> None:
+def metric_card(col, label: str, value: str, icon: str = "⚡", variant: str = "slate") -> None:
     col.markdown(
         f"""
         <div class="gadded-kpi-card">
-            <div class="kpi-icon-bg">
+            <div class="kpi-icon-bg kpi-icon-{variant}">
                 <span class="text-lg">{icon}</span>
             </div>
             <div class="kpi-label">{label}</div>
-            <div class="kpi-value">{value}</div>
+            <div class="kpi-value tabnum">{value}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+
+def finding_card(
+    icon: str, icon_bg: str, title: str, badge_label: str, badge_class: str,
+    meta_html: str = "", body_html: str = "",
+) -> str:
+    """Unified list-item card markup for GIS findings, regulatory findings, and vendors."""
+    meta_block = f'<div class="text-xs text-slate-500 mb-2 font-semibold">{meta_html}</div>' if meta_html else ""
+    return f"""
+        <div class="gadded-finding-card mb-3">
+            <div class="gadded-finding-icon" style="background:{icon_bg}">{icon}</div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="font-extrabold text-slate-900 text-[15px]">{title}</div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap {badge_class}">{badge_label}</span>
+                </div>{meta_block}{body_html}
+            </div>
+        </div>
+        """
+
+
+def style_chart(fig, axes) -> None:
+    """Consistent flat, modern styling applied to every matplotlib chart in the app.
+
+    Palette and mark language follow the dataviz skill: hairline recessive
+    gridlines on one axis only, no top/right/left spines, ink titles, muted
+    axis text, and a lightly bordered legend that never floats free.
+    """
+    fig.patch.set_facecolor("#FFFFFF")
+    ax_list = axes if isinstance(axes, (list, tuple)) or hasattr(axes, "__iter__") else [axes]
+    for ax in ax_list:
+        ax.set_facecolor("#FFFFFF")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_color(TOKENS["border"])
+        ax.spines["bottom"].set_linewidth(1)
+        ax.tick_params(colors=TOKENS["text_muted"], labelsize=9.5, length=0)
+        ax.grid(True, axis="y", linestyle="-", linewidth=1, alpha=0.6, color=TOKENS["border"])
+        ax.set_axisbelow(True)
+        ax.title.set_color(TOKENS["text_primary"])
+        ax.title.set_fontweight("bold")
+        ax.title.set_fontsize(12)
+        ax.title.set_ha("left")
+        ax.title.set_position((0.0, 1.03))
+        ax.xaxis.label.set_color(TOKENS["text_secondary"])
+        ax.xaxis.label.set_fontweight("medium")
+        ax.yaxis.label.set_color(TOKENS["text_secondary"])
+        ax.yaxis.label.set_fontweight("medium")
+        legend = ax.get_legend()
+        if legend is not None:
+            frame = legend.get_frame()
+            frame.set_edgecolor(TOKENS["border"])
+            frame.set_linewidth(1)
+            frame.set_facecolor("#FFFFFF")
+            frame.set_alpha(0.96)
+            for text in legend.get_texts():
+                text.set_color(TOKENS["text_secondary"])
+                text.set_fontsize(9)
+
+
+def _round_bars(ax, radius_frac: float = 0.24, horizontal: bool = False) -> None:
+    """Redraw bar/barh rectangle patches with a rounded data-end and a square
+    baseline (per dataviz mark spec: '4px rounded data-end, square at the
+    baseline'). Purely cosmetic — does not touch the underlying values.
+    """
+    import matplotlib.patches as mpatches
+    import matplotlib.path as mpath
+
+    Path = mpath.Path
+    for patch in list(ax.patches):
+        if not isinstance(patch, mpatches.Rectangle):
+            continue
+        x, y, w, h = patch.get_x(), patch.get_y(), patch.get_width(), patch.get_height()
+        thickness = abs(h) if horizontal else abs(w)
+        r = min(thickness * radius_frac, abs(w) / 2, abs(h) / 2)
+        # Signed step back toward the baseline (patch.get_y()/get_x()) from the
+        # data-end — handles bars that dip below a zero baseline (negative h/w)
+        # without rounding the wrong corner.
+        rh = r if h >= 0 else -r
+        rw = r if w >= 0 else -r
+        if horizontal:
+            verts = [
+                (x, y), (x + w - rw, y),
+                (x + w, y), (x + w, y + rh),
+                (x + w, y + h - rh),
+                (x + w, y + h), (x + w - rw, y + h),
+                (x, y + h), (x, y),
+            ]
+        else:
+            verts = [
+                (x, y), (x, y + h - rh),
+                (x, y + h), (x + rw, y + h),
+                (x + w - rw, y + h),
+                (x + w, y + h), (x + w, y + h - rh),
+                (x + w, y), (x, y),
+            ]
+        codes = [Path.MOVETO, Path.LINETO, Path.CURVE3, Path.CURVE3,
+                 Path.LINETO, Path.CURVE3, Path.CURVE3, Path.LINETO, Path.CLOSEPOLY]
+        new_patch = mpatches.PathPatch(
+            Path(verts, codes), facecolor=patch.get_facecolor(),
+            edgecolor="none", zorder=3, label=patch.get_label(),
+        )
+        patch.set_visible(False)
+        ax.add_patch(new_patch)
 
 
 def status_badge(status: str) -> None:
@@ -412,7 +855,7 @@ def status_badge(status: str) -> None:
     st.markdown(
         f"""
         <div class="gadded-status-pill {css_classes}">
-            <span>{icon}</span>
+            <span class="gadded-status-icon" style="color:{color}">{icon}</span>
             <span>{label}</span>
         </div>
         """,
@@ -649,25 +1092,51 @@ st.set_page_config(
 
 inject_tailwind_theme()
 
-# --- Top Minimal Header Banner with High Contrast Text ---
+# --- Hero Header ---
 st.markdown(
     f"""
-    <div class="gadded-hero-minimal mb-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="gadded-hero mb-4">
+        <div class="relative flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Gadded — Dashboard for AI Empower Egypt 2026</h1>
-                <p class="text-emerald-300 font-extrabold text-base sm:text-lg mt-1 tracking-wide" style="font-family: 'Cairo', sans-serif;">
-                    جدد — منصة دعم قرارات الطاقة الشمسية للمصانع المصرية (تمكين مصر 2026)
+                <div class="inline-flex items-center gap-2 text-emerald-300 text-[11px] font-extrabold tracking-[0.18em] uppercase mb-3">
+                    <span>☀️</span> AI Empower Egypt 2026 &middot; Renewable Energy Track
+                </div>
+                <h1 class="text-3xl sm:text-[2.6rem] font-extrabold text-white tracking-tight leading-none">Gadded</h1>
+                <p class="text-slate-300 text-sm sm:text-[15px] font-medium mt-2.5 max-w-xl leading-relaxed">
+                    AI-driven solar pre-development assessment for Egyptian industrial factories —
+                    from raw energy bills to a financed, permit-checked rooftop system.
+                </p>
+                <p class="gadded-hero-arabic text-base mt-3 tracking-wide" style="font-family: 'Cairo', sans-serif;">
+                    جدد — منصة دعم قرارات الطاقة الشمسية للمصانع المصرية
                 </p>
             </div>
-            <div class="bg-white/20 backdrop-blur px-3.5 py-1.5 rounded-xl border border-white/30 text-xs text-white font-extrabold whitespace-nowrap self-start sm:self-center">
-                ☀️ Official PoC Engine
+            <div class="gadded-hero-badge px-4 py-2.5 rounded-xl text-xs text-white font-extrabold whitespace-nowrap self-start flex items-center gap-2">
+                <span class="pulse-dot"></span> Live Analytical Engine
+            </div>
+        </div>
+        <div class="gadded-hero-meter"></div>
+        <div class="gadded-hero-stats">
+            <div>
+                <div class="gadded-hero-stat-label">Physics</div>
+                <div class="gadded-hero-stat-value">pvlib PVWatts</div>
+            </div>
+            <div>
+                <div class="gadded-hero-stat-label">Load ML</div>
+                <div class="gadded-hero-stat-value">Clustering + Regression</div>
+            </div>
+            <div>
+                <div class="gadded-hero-stat-label">Regulatory</div>
+                <div class="gadded-hero-stat-value">LLM-scored RAG</div>
+            </div>
+            <div>
+                <div class="gadded-hero-stat-label">Risk</div>
+                <div class="gadded-hero-stat-value">Monte Carlo Finance</div>
             </div>
         </div>
     </div>
 
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-950 flex items-start gap-2.5 mb-5 shadow-sm">
-        <span class="text-base leading-none">ℹ️</span>
+    <div class="bg-amber-50/80 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-900 flex items-start gap-2.5 mb-5 mt-4">
+        <span class="text-sm leading-none mt-0.5">ℹ️</span>
         <div><strong>Disclaimer:</strong> {DISCLAIMER}</div>
     </div>
     """,
@@ -675,7 +1144,7 @@ st.markdown(
 )
 
 # --- SECTION 1: SCENARIO SELECTION ---
-section_banner("🎯", "SECTION 1 — Select Scenario Preset or Build Custom Assessment", "Choose a pre-configured Egyptian industrial scenario or customize your parameters below:")
+section_banner("01", "🎯", "Choose Your Starting Point", "Pick a pre-configured Egyptian industrial scenario, or build a custom assessment below.")
 
 preset_cols = st.columns(4)
 selected_preset_key = st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")
@@ -684,33 +1153,34 @@ for i, (name, details) in enumerate(PRESETS.items()):
     col = preset_cols[i]
     is_active = (selected_preset_key == name)
     active_class = "active" if is_active else ""
-    
+
     with col:
+        check_badge = '<div class="gadded-preset-check">&#10003;</div>' if is_active else ""
         st.markdown(
             f"""
-            <div class="gadded-preset-card {active_class} mb-2 flex flex-col justify-between">
+            <div class="gadded-preset-card {active_class} mb-2 flex flex-col justify-between">{check_badge}
                 <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xl">{details.get('icon', '☀️')}</span>
-                        <span class="px-2.5 py-0.5 text-[10px] font-extrabold rounded border {details['badge_color']}">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <span class="gadded-preset-icon">{details.get('icon', '☀️')}</span>
+                        <span class="px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border {details['badge_color']}">
                             {details['badge']}
                         </span>
                     </div>
-                    <div class="font-extrabold text-xs text-slate-900 mb-1">{name}</div>
-                    <div class="text-[11px] text-slate-600 font-medium leading-relaxed mb-3">{details['desc']}</div>
+                    <div class="font-extrabold text-xs text-slate-900 mb-1.5 leading-snug">{name}</div>
+                    <div class="text-[11px] text-slate-500 font-medium leading-relaxed mb-3">{details['desc']}</div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button(f"Load Preset", key=f"btn_preset_{i}", use_container_width=True):
+        if st.button("Selected ✓" if is_active else "Load Preset", key=f"btn_preset_{i}", use_container_width=True, disabled=is_active):
             st.session_state["active_preset"] = name
             st.rerun()
 
 preset = PRESETS[st.session_state.get("active_preset", "Golden Case (10th Ramadan Factory)")]["data"]
 
 # --- SECTION 2: INPUT WIZARD ---
-section_banner("⚙️", "SECTION 2 — Configure Factory & Site Parameters", "Adjust project location, energy consumption, site constraints, and financial targets:")
+section_banner("02", "⚙️", "Configure Factory & Site", "Location, energy consumption, site constraints, and financial targets.")
 
 with st.expander("📝 View & Edit Factory Assessment Parameters", expanded=True):
     col_a, col_b = st.columns(2)
@@ -802,22 +1272,53 @@ result = run["result"]
 rec = result.technical
 
 # --- SECTION 3: EXECUTIVE DECISION DASHBOARD ---
-section_banner("📊", "SECTION 3 — Executive Decision Dashboard & Feasibility Status", "Deterministic feasibility status, core financial metrics, and executive KPIs:")
+section_banner("03", "📊", "Your Decision Dashboard", "The deterministic feasibility status and the numbers that actually matter for a buy decision.")
 
-hdr_col1, hdr_col2 = st.columns([3, 1])
-with hdr_col1:
-    st.subheader(ai.projectName)
-    st.caption(f"📍 {ai.location.address} | Coordinates: ({ai.location.latitude:.4f}, {ai.location.longitude:.4f})")
-    status_badge(result.status)
+# --- Headline sales pitch: the status + 4 numbers that actually convince someone to buy,
+# unified in a single "verdict panel" so it reads as one unmissable decision surface.
+cash_scn = next((s for s in result.financial if s.scenario == "cash"), None)
+best_scn = cash_scn or result.financial[0]
+lifetime_years = int(run["assumptions"].number("analysis_period_years"))
+lifetime_total = lifetime_savings_egp(best_scn, run["assumptions"])
 
-with hdr_col2:
-    html_report = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
-    st.download_button(
-        "📥 Download Report (HTML)",
-        data=html_report,
-        file_name=f"Gadded_Assessment_{result.assessmentId}.html",
-        mime="text/html",
-        use_container_width=True,
+with st.container(border=True, key="verdict_panel"):
+    hdr_col1, hdr_col2 = st.columns([3, 1])
+    with hdr_col1:
+        st.markdown(
+            f"""
+            <div class="gadded-project-title">{ai.projectName}</div>
+            <div class="gadded-project-meta">📍 {ai.location.address} &nbsp;·&nbsp; ({ai.location.latitude:.4f}, {ai.location.longitude:.4f})</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        status_badge(result.status)
+
+    with hdr_col2:
+        html_report = render_html(result, ai.projectName, datetime.now(timezone.utc).isoformat())
+        st.download_button(
+            "📥 Download Report (HTML)",
+            data=html_report,
+            file_name=f"Gadded_Assessment_{result.assessmentId}.html",
+            mime="text/html",
+            use_container_width=True,
+        )
+
+    st.markdown('<div class="gadded-verdict-divider"></div>', unsafe_allow_html=True)
+
+    pitch_cols = st.columns(4)
+    metric_card(pitch_cols[0], "You Save Every Year", fmt_egp_short(best_scn.yearOneSavingsEgp), "💵", "brand")
+    metric_card(
+        pitch_cols[1], "Pays for Itself In",
+        f"{result.risk.paybackP50Years:.1f} yrs" if result.risk.paybackP50Years else "n/a", "⏱️", "violet",
+    )
+    metric_card(pitch_cols[2], f"Total Savings ({lifetime_years} yrs)", fmt_egp_short(lifetime_total), "📈", "brand")
+    metric_card(pitch_cols[3], "Powered by the Sun", f"{rec.selfSufficiencyRatio*100:.0f}%", "☀️", "solar")
+
+    st.markdown(
+        f"""<div class="gadded-verdict-footnote">'{lifetime_years}-year total' adds up every year's savings
+        without adjusting for future money being worth less today — see Financial Risk for the
+        risk-adjusted (NPV) view.</div>""",
+        unsafe_allow_html=True,
     )
 
 if result.status != "likely_feasible":
@@ -825,38 +1326,18 @@ if result.status != "likely_feasible":
         for reason in run["feas"].reasons:
             st.markdown(f"- **{reason}**")
 
-# --- Headline sales pitch: the 4 numbers that actually convince someone to buy ---
-cash_scn = next((s for s in result.financial if s.scenario == "cash"), None)
-best_scn = cash_scn or result.financial[0]
-lifetime_years = int(run["assumptions"].number("analysis_period_years"))
-lifetime_total = lifetime_savings_egp(best_scn, run["assumptions"])
-
-st.markdown("<div class='my-4'></div>", unsafe_allow_html=True)
-pitch_cols = st.columns(4)
-metric_card(pitch_cols[0], "You Save Every Year", fmt_egp_short(best_scn.yearOneSavingsEgp), "💵")
-metric_card(
-    pitch_cols[1], "Pays for Itself In",
-    f"{result.risk.paybackP50Years:.1f} yrs" if result.risk.paybackP50Years else "n/a", "⏱️",
-)
-metric_card(pitch_cols[2], f"Total Savings ({lifetime_years} yrs)", fmt_egp_short(lifetime_total), "📈")
-metric_card(pitch_cols[3], "Powered by the Sun", f"{rec.selfSufficiencyRatio*100:.0f}%", "☀️")
-st.caption(
-    f"'{lifetime_years}-year total' adds up every year's savings without adjusting for "
-    "future money being worth less today — see Financial Risk for the risk-adjusted (NPV) view."
-)
-
 with st.expander("🔬 Full Technical Snapshot (system size, generation, approval time)"):
     tech_cols = st.columns(4)
-    metric_card(tech_cols[0], "Recommended System Size", f"{rec.recommendedCapacityKw:.0f} kW", "⚡")
-    metric_card(tech_cols[1], "Solar Electricity Produced / Year", fmt_kwh_short(rec.annualGenerationKwh), "☀️")
-    metric_card(tech_cols[2], "Share of Solar Actually Used On-Site", f"{rec.selfConsumptionRatio*100:.1f}%", "🔄")
+    metric_card(tech_cols[0], "Recommended System Size", f"{rec.recommendedCapacityKw:.0f} kW", "⚡", "brand")
+    metric_card(tech_cols[1], "Solar Electricity Produced / Year", fmt_kwh_short(rec.annualGenerationKwh), "☀️", "solar")
+    metric_card(tech_cols[2], "Share of Solar Actually Used On-Site", f"{rec.selfConsumptionRatio*100:.1f}%", "🔄", "violet")
     reg_dur = next((f.estimatedDurationDays for f in result.regulatoryFindings if f.estimatedDurationDays), None)
-    metric_card(tech_cols[3], "Regulatory Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} days" if reg_dur else "n/a", "📋")
+    metric_card(tech_cols[3], "Regulatory Approval Time", f"{reg_dur.minimum}-{reg_dur.maximum} days" if reg_dur else "n/a", "📋", "slate")
 
 st.markdown("<div class='mb-6'></div>", unsafe_allow_html=True)
 
 # --- SECTION 4: DETAILED ANALYTICAL BREAKDOWN ---
-section_banner("🔍", "SECTION 4 — Detailed Technical, Financial, GIS & Legal Breakdown", "Explore specialized analytical modules, physics simulations, and legal compliance:")
+section_banner("04", "🔍", "Full Technical Breakdown", "Physics simulations, financial risk, GIS screening, and legal compliance — module by module.")
 
 tab_tech, tab_fin, tab_site, tab_reg, tab_vendor, tab_report = st.tabs(
     ["⚡ Technical & PV", "💰 Financial Risk", "🗺️ Site & GIS", "📜 Regulatory", "🏢 Vendors", "📄 Full Report"]
@@ -869,13 +1350,12 @@ with tab_tech:
 
     fig, ax = plt.subplots(figsize=(9, 3.2))
     sample = best.hourly.loc["2023-06-05":"2023-06-11"]
-    ax.plot(sample.index, sample["load_kw"], label="Your Factory's Power Use", color=TOKENS["technical"], linewidth=1.5)
-    ax.plot(sample.index, sample["pv_kw"], label=f"Solar Power Produced ({rec.recommendedCapacityKw:.0f} kW system)", color=TOKENS["solar"], linewidth=1.5)
-    ax.set_facecolor("#F8FAFC")
-    fig.patch.set_facecolor("#FFFFFF")
-    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.plot(sample.index, sample["load_kw"], label="Your Factory's Power Use", color=TOKENS["technical"], linewidth=2, solid_capstyle="round")
+    ax.plot(sample.index, sample["pv_kw"], label=f"Solar Power Produced ({rec.recommendedCapacityKw:.0f} kW system)", color=TOKENS["solar"], linewidth=2, solid_capstyle="round")
+    ax.fill_between(sample.index, sample["pv_kw"], color=TOKENS["solar"], alpha=0.10, linewidth=0)
     ax.set_ylabel("kW")
-    ax.legend(frameon=True, facecolor="#FFFFFF")
+    ax.legend(loc="upper right", frameon=True)
+    style_chart(fig, ax)
     st.pyplot(fig)
     st.caption(
         "One sample week. Where the orange (solar) line sits under the dark (factory use) "
@@ -896,15 +1376,16 @@ with tab_tech:
         )
         fig2, ax2 = plt.subplots(figsize=(8, 3.2))
         table = run["opt"].table
-        ax2.plot(table["capacity_kw"], table["npv_egp"] / 1e6, marker="o", color=TOKENS["energy"], linewidth=1.5)
-        ax2.axvline(rec.recommendedCapacityKw, color=TOKENS["solar"], linestyle="--", label="Recommended")
-        ax2.axvline(rec.physicalMaximumKw, color=TOKENS["critical"], linestyle=":", label="Roof's Physical Limit")
-        ax2.set_facecolor("#F8FAFC")
-        fig2.patch.set_facecolor("#FFFFFF")
-        ax2.grid(True, linestyle="--", alpha=0.5)
+        ax2.plot(
+            table["capacity_kw"], table["npv_egp"] / 1e6, color=TOKENS["energy"], linewidth=2,
+            marker="o", markersize=4.5, markerfacecolor=TOKENS["energy"], markeredgecolor="#FFFFFF", markeredgewidth=1,
+        )
+        ax2.axvline(rec.recommendedCapacityKw, color=TOKENS["solar"], linestyle="--", linewidth=1.6, label="Recommended")
+        ax2.axvline(rec.physicalMaximumKw, color=TOKENS["boundary"], linestyle=":", linewidth=1.6, label="Roof's Physical Limit")
         ax2.set_xlabel("System Size Tested (kW)")
         ax2.set_ylabel("Project Value (Million EGP)")
-        ax2.legend(frameon=True, facecolor="#FFFFFF")
+        ax2.legend(loc="lower right", frameon=True)
+        style_chart(fig2, ax2)
         st.pyplot(fig2)
         st.caption("Each point is one candidate system size; higher is more financially valuable.")
 
@@ -920,23 +1401,24 @@ with tab_fin:
     for idx, s in enumerate(result.financial):
         icon, title, subtitle = scenario_copy.get(s.scenario, ("💰", s.scenario.title(), ""))
         lifetime = lifetime_savings_egp(s, run["assumptions"])
+        accent_class = "accent-brand" if s.scenario == "cash" else "accent-ink"
         monthly_row = (
-            f'<div class="flex justify-between border-b border-slate-100 pb-1">'
-            f'<span>Monthly Loan Payment:</span> <span class="font-bold text-slate-900">{s.monthlyLoanPaymentEgp:,.0f} EGP</span></div>'
+            f'<div class="gadded-scenario-row"><span>Monthly Loan Payment</span> '
+            f'<span class="val">{s.monthlyLoanPaymentEgp:,.0f} EGP</span></div>'
             if s.monthlyLoanPaymentEgp else ""
         )
         with fin_cols[idx]:
             st.markdown(
                 f"""
-                <div class="gadded-glass-card">
-                    <div class="font-extrabold text-slate-900 text-lg mb-1">{icon} {title}</div>
-                    <div class="text-xs text-slate-500 font-medium mb-3">{subtitle}</div>
-                    <div class="text-xs text-slate-500 font-semibold mb-1">Upfront Cost</div>
-                    <div class="text-xl font-extrabold text-emerald-700 mb-3">{s.capexEgp:,.0f} EGP</div>
-                    <div class="space-y-1.5 text-xs">
-                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>You Save / Year:</span> <span class="font-bold text-slate-900">{s.yearOneSavingsEgp:,.0f} EGP</span></div>
-                        <div class="flex justify-between border-b border-slate-100 pb-1"><span>Pays for Itself In:</span> <span class="font-bold text-slate-900">{f'{s.simplePaybackYears:.1f} yrs' if s.simplePaybackYears else 'n/a'}</span></div>{monthly_row}
-                        <div class="flex justify-between"><span>Total Savings ({lifetime_years} yrs):</span> <span class="font-bold text-slate-900">{lifetime:,.0f} EGP</span></div>
+                <div class="gadded-glass-card {accent_class}">
+                    <div class="font-extrabold text-slate-900 text-lg mb-0.5">{icon} {title}</div>
+                    <div class="text-xs text-slate-500 font-medium mb-3.5">{subtitle}</div>
+                    <div class="text-[11px] text-slate-500 font-bold uppercase tracking-wide mb-1">Upfront Cost</div>
+                    <div class="text-2xl font-extrabold text-emerald-700 mb-3.5 tabnum">{s.capexEgp:,.0f} <span class="text-sm font-bold text-slate-400">EGP</span></div>
+                    <div>
+                        <div class="gadded-scenario-row"><span>You Save / Year</span> <span class="val">{s.yearOneSavingsEgp:,.0f} EGP</span></div>
+                        <div class="gadded-scenario-row"><span>Pays for Itself In</span> <span class="val">{f'{s.simplePaybackYears:.1f} yrs' if s.simplePaybackYears else 'n/a'}</span></div>{monthly_row}
+                        <div class="gadded-scenario-row"><span>Total Savings ({lifetime_years} yrs)</span> <span class="val">{lifetime:,.0f} EGP</span></div>
                     </div>
                 </div>
                 """,
@@ -956,13 +1438,14 @@ with tab_fin:
     )
     fig3, ax3 = plt.subplots(figsize=(8, 3))
     ax3.bar(
-        ["Worst Case", "Expected", "Best Case"],
+        ["Worst Case\n(P10)", "Expected\n(P50)", "Best Case\n(P90)"],
         [result.risk.npvP10Egp / 1e6, result.risk.npvP50Egp / 1e6, result.risk.npvP90Egp / 1e6],
-        color=[TOKENS["critical"], TOKENS["solar"], TOKENS["success"]],
+        color=[TOKENS["seq_light"], TOKENS["seq_mid"], TOKENS["seq_dark"]],
+        width=0.5, zorder=3,
     )
     ax3.set_ylabel("Project Value (Million EGP)")
-    ax3.set_facecolor("#F8FAFC")
-    fig3.patch.set_facecolor("#FFFFFF")
+    style_chart(fig3, ax3)
+    _round_bars(ax3, radius_frac=0.22)
     st.pyplot(fig3)
     if result.risk.probabilityTargetPaybackPct is not None:
         st.caption(
@@ -974,10 +1457,12 @@ with tab_fin:
     with st.expander("🔬 Advanced: What affects the outcome the most?"):
         drivers = result.risk.topSensitivityDrivers
         fig4, ax4 = plt.subplots(figsize=(8, 3))
-        ax4.barh([d.variable for d in drivers][::-1], [d.influence * 100 for d in drivers][::-1], color=TOKENS["technical"])
+        ax4.barh([d.variable for d in drivers][::-1], [d.influence * 100 for d in drivers][::-1], color=TOKENS["technical"], height=0.5, zorder=3)
         ax4.set_xlabel("Relative Influence on Project Value (%)")
-        ax4.set_facecolor("#F8FAFC")
-        fig4.patch.set_facecolor("#FFFFFF")
+        style_chart(fig4, ax4)
+        ax4.grid(True, axis="x", linestyle="-", linewidth=1, alpha=0.6, color=TOKENS["border"])
+        ax4.grid(False, axis="y")
+        _round_bars(ax4, radius_frac=0.22, horizontal=True)
         st.pyplot(fig4)
         st.caption("One-at-a-time sensitivity ranking — which assumption moves the result most if it's wrong.")
 
@@ -1023,14 +1508,14 @@ with tab_fin:
     fin_pick_cols = st.columns(4)
     metric_card(
         fin_pick_cols[0], "Monthly Payment",
-        f"{chosen_scenario.monthlyLoanPaymentEgp:,.0f} EGP" if chosen_scenario.monthlyLoanPaymentEgp else "n/a", "🧾",
+        f"{chosen_scenario.monthlyLoanPaymentEgp:,.0f} EGP" if chosen_scenario.monthlyLoanPaymentEgp else "n/a", "🧾", "slate",
     )
     metric_card(
         fin_pick_cols[1], "Pays for Itself In",
-        f"{chosen_scenario.simplePaybackYears:.1f} yr" if chosen_scenario.simplePaybackYears else "n/a", "⏱️",
+        f"{chosen_scenario.simplePaybackYears:.1f} yr" if chosen_scenario.simplePaybackYears else "n/a", "⏱️", "violet",
     )
-    metric_card(fin_pick_cols[2], f"Total Savings ({lifetime_years} yrs)", f"{chosen_lifetime:,.0f} EGP", "📈")
-    metric_card(fin_pick_cols[3], "Equivalent Annual Return", f"{chosen_scenario.irrPct:.0f}%" if chosen_scenario.irrPct is not None else "n/a", "💰")
+    metric_card(fin_pick_cols[2], f"Total Savings ({lifetime_years} yrs)", f"{chosen_lifetime:,.0f} EGP", "📈", "brand")
+    metric_card(fin_pick_cols[3], "Equivalent Annual Return", f"{chosen_scenario.irrPct:.0f}%" if chosen_scenario.irrPct is not None else "n/a", "💰", "solar")
 
     if chosen_option is not None:
         with st.expander(f"📎 Source evidence — {chosen_option.bankName} {chosen_option.productName}"):
@@ -1051,32 +1536,20 @@ with tab_site:
     if not result.gisFindings:
         st.info("No spatial constraints recorded for this site.")
     for f in result.gisFindings:
-        badge_style = {
-            "info": ("✓ Clear", "bg-emerald-100 text-emerald-800 border-emerald-300"),
-            "warning": ("⚠ Condition", "bg-amber-100 text-amber-800 border-amber-300"),
-            "critical": ("✕ Blocker", "bg-rose-100 text-rose-800 border-rose-300"),
-            "unknown": ("? Unknown", "bg-slate-100 text-slate-700 border-slate-300"),
-        }.get(f.severity, ("?", "bg-slate-100 text-slate-700 border-slate-300"))
-        
-        border_left = {
-            "info": "border-l-4 border-l-emerald-500",
-            "warning": "border-l-4 border-l-amber-500",
-            "critical": "border-l-4 border-l-rose-500",
-            "unknown": "border-l-4 border-l-slate-400",
-        }.get(f.severity, "")
+        icon, icon_bg, badge_label, badge_class = {
+            "info": ("✓", "var(--brand-soft)", "Clear", "bg-emerald-100 text-emerald-800 border-emerald-300"),
+            "warning": ("⚠", "var(--solar-soft)", "Condition", "bg-amber-100 text-amber-800 border-amber-300"),
+            "critical": ("✕", "var(--rose-soft)", "Blocker", "bg-rose-100 text-rose-800 border-rose-300"),
+            "unknown": ("?", "#F1F5F9", "Unknown", "bg-slate-100 text-slate-700 border-slate-300"),
+        }.get(f.severity, ("?", "#F1F5F9", f.severity, "bg-slate-100 text-slate-700 border-slate-300"))
 
+        meta_html = f"Category: <strong>{f.category}</strong> &middot; Source: <strong>{f.sourceName}</strong>"
+        body_html = (
+            (f'<div class="text-xs font-bold text-slate-900 mb-1">Value: {f.value} {f.unit or ""}</div>' if f.value is not None else "")
+            + ('<div class="text-[11px] text-slate-500 italic">Limitations: ' + " ".join(f.limitations) + "</div>" if f.limitations else "")
+        )
         st.markdown(
-            f"""
-            <div class="gadded-glass-card {border_left} mb-3">
-                <div class="flex items-center justify-between mb-1">
-                    <div class="font-extrabold text-slate-900">{f.title}</div>
-                    <span class="px-2.5 py-0.5 rounded text-xs font-bold border {badge_style[1]}">{badge_style[0]}</span>
-                </div>
-                <div class="text-xs text-slate-600 mb-2">Category: <strong>{f.category}</strong> | Source: <strong>{f.sourceName}</strong></div>
-                {f'<div class="text-xs font-bold text-slate-900 mb-1">Value: {f.value} {f.unit or ""}</div>' if f.value is not None else ''}
-                {'<div class="text-[11px] text-slate-500 italic">Limitations: ' + ' '.join(f.limitations) + '</div>' if f.limitations else ''}
-            </div>
-            """,
+            finding_card(icon, icon_bg, f.title, badge_label, badge_class, meta_html, body_html),
             unsafe_allow_html=True,
         )
 
@@ -1086,16 +1559,15 @@ with tab_reg:
     if not result.regulatoryFindings:
         st.info("No regulatory findings evaluated.")
     for f in result.regulatoryFindings:
+        icon, icon_bg, badge_class = {
+            "info": ("✓", "var(--brand-soft)", "bg-emerald-100 text-emerald-800 border-emerald-300"),
+            "warning": ("⚠", "var(--solar-soft)", "bg-amber-100 text-amber-800 border-amber-300"),
+            "critical": ("✕", "var(--rose-soft)", "bg-rose-100 text-rose-800 border-rose-300"),
+        }.get(f.severity, ("?", "#F1F5F9", "bg-slate-100 text-slate-700 border-slate-300"))
+        meta_html = f"Confidence: <strong>{f.confidence}</strong> &middot; Verification Required: <strong>{'Yes' if f.verificationRequired else 'No'}</strong>"
+        body_html = f'<p class="text-xs text-slate-700 font-medium">{f.explanation}</p>'
         st.markdown(
-            f"""
-            <div class="gadded-glass-card mb-4 border-l-4 border-l-emerald-600">
-                <div class="font-extrabold text-slate-900 text-base mb-1">{f.title}</div>
-                <p class="text-xs text-slate-700 font-medium mb-2">{f.explanation}</p>
-                <div class="text-xs text-slate-500 mb-2">
-                    Conclusion: <strong>{f.conclusion}</strong> | Confidence: <strong>{f.confidence}</strong> | Verification Required: <strong>{'Yes' if f.verificationRequired else 'No'}</strong>
-                </div>
-            </div>
-            """,
+            finding_card(icon, icon_bg, f.title, f.conclusion.replace("_", " ").title(), badge_class, meta_html, body_html),
             unsafe_allow_html=True,
         )
         if f.citations:
@@ -1121,17 +1593,13 @@ with tab_vendor:
     else:
         st.caption("Screened vendor candidates with verified web evidence links.")
         for v in result.vendors:
+            meta_html = f'<a href="{v.websiteUrl}" target="_blank" class="font-bold text-emerald-700 hover:underline">Visit Website ↗</a>'
+            body_html = (
+                f'<p class="text-xs text-slate-700 mb-1.5 font-medium">{v.fitExplanation}</p>'
+                f'<div class="text-[11px] text-slate-500">Verification Status: <strong>{v.verificationStatus}</strong></div>'
+            )
             st.markdown(
-                f"""
-                <div class="gadded-glass-card mb-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="font-extrabold text-slate-900 text-base">{v.name}</div>
-                        <a href="{v.websiteUrl}" target="_blank" class="text-xs font-bold text-emerald-700 hover:underline">Visit Website ↗</a>
-                    </div>
-                    <p class="text-xs text-slate-700 mb-2 font-medium">{v.fitExplanation}</p>
-                    <div class="text-[11px] text-slate-500">Verification Status: <strong>{v.verificationStatus}</strong></div>
-                </div>
-                """,
+                finding_card("🏢", "var(--violet-soft)", v.name, "Vendor", "bg-violet-100 text-violet-800 border-violet-300", meta_html, body_html),
                 unsafe_allow_html=True,
             )
 
@@ -1147,4 +1615,15 @@ with tab_report:
         st.write(f"**Weather Dataset:** {run['weather'].source_name} (Retrieved {run['weather'].retrieved_at})")
 
 # Persistent footer disclaimer
-st.markdown(f"<div class='text-center text-xs text-slate-400 mt-8 mb-4'>{DISCLAIMER}</div>", unsafe_allow_html=True)
+st.markdown(
+    f"""
+    <div class="gadded-footer">
+        <span>☀️ Gadded</span>
+        <span>&middot;</span>
+        <span>AI Empower Egypt 2026</span>
+        <span>&middot;</span>
+        <span>{DISCLAIMER}</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)

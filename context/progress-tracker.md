@@ -230,3 +230,38 @@ Replaced most of the previously-synthetic/DEMO regulatory, GIS, and financial da
   Full suite: 112 passed / 0 failed offline, 4/4 live passed with both keys present.
 - `requirements.txt`/`requirements.lock.txt`: added `google-genai`, kept `openai` (still
   needed for the Groq client).
+
+## 2026-07-29 — `app.py` full UI redesign + Tailwind/CSS bugs fixed
+
+- Full visual redesign of `app.py` (presentation-only, no pipeline/logic changes) via UI
+  Designer subagent: new "climate-fintech" hero (pulse-dot live badge, gradient spectrum
+  meter, tech-stack strip), unified verdict panel (status + KPIs in one bordered surface),
+  refined preset/finding/scenario cards, sequential-hue Monte Carlo chart replacing the old
+  red/amber/green traffic-light palette (was misusing "critical" red for a normally-positive
+  worst case), rounded bar charts, new `--radius-*` tokens, `style_chart()` now handles
+  legend styling too. Helper signatures (`section_banner`, `metric_card`, `finding_card`,
+  `status_badge`, `style_chart`) unchanged; new `_round_bars()` helper added.
+- **Real, pre-existing bug found and fixed during live verification (claude-in-chrome):
+  Tailwind CDN was never actually loading.** `st.markdown(unsafe_allow_html=True)` inserts
+  HTML via a method equivalent to `innerHTML`, and browsers never execute `<script>` tags
+  inserted that way (hard spec rule, not a Streamlit bug) — so every Tailwind utility class
+  used anywhere in this file (`flex`, `rounded-xl`, `text-slate-300`, etc.) had been inert
+  since the very first version of this UI. `inject_tailwind_theme()` now loads Tailwind via
+  `st.components.v1.html(..., height=0)` (a real iframe — scripts do execute there), whose
+  script reaches into `window.parent.document` and attaches a real `<script>` element via
+  `createElement`/`appendChild` (not innerHTML), which the browser does execute normally.
+  Added `import streamlit.components.v1 as components`.
+- **Second bug, same root cause, found twice:** the global CSS rule
+  `div[data-testid="stMarkdownContainer"] p { color: var(--ink) !important; }` (meant to
+  darken plain Streamlit widget labels) also matches (a) the hero's light-colored subtitle
+  `<p>` and (b) every `st.button`/`st.download_button` label, since Streamlit renders button
+  text as a `<p>` inside a `stMarkdownContainer` too. Both were rendering dark-ink text on
+  dark backgrounds — i.e. invisible. Fixed with two higher-specificity scoped overrides (one
+  for `.gadded-hero p`, one for `.stButton`/`.stDownloadButton` labels) rather than touching
+  the original global rule, which is still needed for the real widget labels it targets.
+  **If any future style adds a `<p>`-based custom component on a dark background, check this
+  same rule first** — it silently wins by `!important` + specificity unless explicitly
+  scoped around.
+- Verified live end-to-end in a real browser: hero, verdict panel, KPI cards, all 4
+  matplotlib charts, GIS/Regulatory finding cards, all preset/Run Assessment/Download
+  Report buttons — all render correctly with the fixes in place.
