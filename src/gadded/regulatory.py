@@ -78,19 +78,19 @@ def _retrieve_llm(
     query: str, corpus: RegulatoryCorpus, top_k: int, client, model: str | None
 ) -> list[tuple[dict, float]] | None:
     """Return None (never raises) on any failure, so callers fall back to TF-IDF."""
-    model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
-    excerpt_block = "\n\n".join(f"[{e['id']}] {e['text']}" for e in corpus.excerpts)
-    prompt = f"Query: {query}\n\nExcerpts:\n{excerpt_block}"
-    payload = gemini_json_call(client, model, _RETRIEVAL_INSTRUCTIONS, prompt, max_output_tokens=3000)
-    if payload is None:
-        return None
     try:
+        model = model or os.environ.get("GEMINI_REASONING_MODEL", DEFAULT_MODEL)
+        excerpt_block = "\n\n".join(f"[{e['id']}] {e['text']}" for e in corpus.excerpts)
+        prompt = f"Query: {query}\n\nExcerpts:\n{excerpt_block}"
+        payload = gemini_json_call(client, model, _RETRIEVAL_INSTRUCTIONS, prompt, max_output_tokens=3000)
+        if payload is None:
+            return None
         scores = payload["scores"]
         ranked = sorted(
             corpus.excerpts, key=lambda e: float(scores.get(e["id"], 0.0)), reverse=True
         )
         return [(e, float(scores.get(e["id"], 0.0))) for e in ranked[:top_k]]
-    except (KeyError, TypeError, ValueError):
+    except Exception:
         return None
 
 
