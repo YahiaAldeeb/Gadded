@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gadded Preliminary Assessment — Large Industrial Park Site</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px;
+         margin: 2rem auto; padding: 0 1rem; color: #17211B; background: #F6F7F2; }
+  h1, h2 { color: #183B56; }
+  .status { display:inline-block; padding: 0.4rem 0.9rem; border-radius: 999px;
+            font-weight: 600; border: 1px solid #DCE2D9; }
+  .status-likely_feasible { background:#E3F4EA; color:#237A4B; }
+  .status-feasible_with_conditions { background:#FFF4D5; color:#B76A00; }
+  .status-high_risk, .status-potentially_ineligible { background:#FBE9E9; color:#B93A3A; }
+  .status-insufficient_information { background:#EEF1E8; color:#667085; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.5rem; }
+  th, td { border: 1px solid #DCE2D9; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.92rem; }
+  th { background: #EEF1E8; }
+  .disclaimer { background:#FFF4D5; border:1px solid #E7A927; padding:0.8rem 1rem;
+                border-radius: 0.75rem; margin: 1.5rem 0; font-size: 0.9rem; }
+  .warn { color:#B76A00; } .crit { color:#B93A3A; } .info { color:#237A4B; }
+  code { background:#EEF1E8; padding:0.1rem 0.3rem; border-radius:0.3rem; }
+  .muted { color:#7A877F; font-size:0.85rem; }
+</style>
+</head>
+<body>
+
+<h1>Large Industrial Park Site</h1>
+<p class="muted">Run run-20260729T074138 · Assessment streamlit-demo · Generated 2026-07-29T07:41:38.476359+00:00</p>
+<p><span class="status status-feasible_with_conditions">Feasible with conditions</span></p>
+
+<div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
+
+<h2>Technical recommendation</h2>
+<table>
+  <tr><th>Recommended capacity</th><td>775 kW
+      (physical roof maximum: 3333 kW)</td></tr>
+  <tr><th>Annual PV generation</th><td>1,355,032 kWh</td></tr>
+  <tr><th>Annual factory load</th><td>1,963,000 kWh</td></tr>
+  <tr><th>Self-consumption ratio</th><td>74.7%</td></tr>
+  <tr><th>Self-sufficiency ratio</th><td>51.6%</td></tr>
+  <tr><th>Imported / exported energy</th><td>950,371 kWh
+      imported / 342,404 kWh exported</td></tr>
+  <tr><th>Roof area required</th><td>4650 m²</td></tr>
+  <tr><th>Binding constraint</th><td>economic_optimum</td></tr>
+  <tr><th>Sizing objective</th><td><code>npv</code>
+      over 133 evaluated candidate sizes</td></tr>
+</table>
+
+<h2>Financial scenarios</h2>
+<table>
+  <tr><th>Scenario</th><th>Capex</th><th>Year-1 net savings</th><th>NPV</th><th>IRR</th>
+      <th>Simple payback</th><th>Discounted payback</th><th>Monthly loan</th></tr>
+  
+  <tr>
+    <td>cash</td>
+    <td>7,750,000 EGP</td>
+    <td>2,194,704 EGP</td>
+    <td>17,495,426 EGP</td>
+    <td>33.4%</td>
+    <td>3.3 yr</td>
+    <td>4.4 yr</td>
+    <td>n/a</td>
+  </tr>
+  
+  <tr>
+    <td>finance</td>
+    <td>7,750,000 EGP</td>
+    <td>2,194,704 EGP</td>
+    <td>16,077,956 EGP</td>
+    <td>53.1%</td>
+    <td>2.5 yr</td>
+    <td>3.1 yr</td>
+    <td>137,678 EGP</td>
+  </tr>
+  
+</table>
+<p class="muted">Nominal cash flows; includes O&M, tariff escalation, panel degradation. Excludes tax,
+general inflation adjustment, inverter replacement, and residual value.</p>
+
+<h2>Risk (Monte Carlo, 2000 runs, seed 42)</h2>
+<table>
+  <tr><th></th><th>P10</th><th>P50 (median)</th><th>P90</th></tr>
+  <tr><th>NPV (EGP)</th>
+      <td>11,940,034</td>
+      <td>17,260,149</td>
+      <td>24,715,123</td></tr>
+  <tr><th>Payback (years)</th>
+      <td>2.9</td>
+      <td>3.3</td>
+      <td>3.9</td></tr>
+</table>
+
+<p>Probability of meeting the target payback: <strong>100.0%</strong></p>
+
+<h3>Top sensitivity drivers</h3>
+<table>
+  <tr><th>Variable</th><th>Relative influence</th></tr>
+  
+  <tr><td>tariff_escalation</td><td>66%</td></tr>
+  
+  <tr><td>pv_yield</td><td>18%</td></tr>
+  
+  <tr><td>capex</td><td>10%</td></tr>
+  
+  <tr><td>opex</td><td>6%</td></tr>
+  
+</table>
+
+<h2>Site screening</h2>
+<table>
+  <tr><th>Category</th><th>Severity</th><th>Title</th><th>Value</th><th>Source</th></tr>
+  
+  <tr>
+    <td>industrial_zone</td>
+    <td class="info">info</td>
+    <td>Site is inside 10th of Ramadan City Industrial Zone (OpenStreetMap sectors)</td>
+    <td>10th of Ramadan City Industrial Zone (OpenStreetMap sectors)</td>
+    <td class="muted">OpenStreetMap (via Overpass API), landuse=industrial ways, 10th of Ramadan City</td>
+  </tr>
+  
+  <tr>
+    <td>protected_area</td>
+    <td class="info">info</td>
+    <td>Site does not intersect any mapped protected area</td>
+    <td>False</td>
+    <td class="muted">gadded-gis-layers</td>
+  </tr>
+  
+  <tr>
+    <td>substation_distance</td>
+    <td class="info">info</td>
+    <td>Nearest mapped substation: OSM power=substation (way 123870405)</td>
+    <td>3361.1 m</td>
+    <td class="muted">OpenStreetMap (via Overpass API), power=substation</td>
+  </tr>
+  
+  <tr>
+    <td>road_distance</td>
+    <td class="info">info</td>
+    <td>Nearest mapped road: طريق الإسماعيلية</td>
+    <td>5808.4 m</td>
+    <td class="muted">OpenStreetMap (via Overpass API), highway=trunk/primary</td>
+  </tr>
+  
+</table>
+
+<h2>Regulatory findings</h2>
+
+<table>
+  <tr><th>Above 500 kW: EgyptERA permit, licence, and grid-impact study required</th><td class="warn">
+      requires_review · warning · confidence high</td></tr>
+  <tr><td colspan="2">Above 500 kW, self-consumption projects require an EgyptERA construction permit, an electricity-generation licence, and a grid-impact/network-impact study at the subscriber's cost, plus any network reinforcement identified by the distribution company. Capacity must also not exceed the facility's maximum recorded electrical demand from the preceding financial year.</td></tr>
+  <tr><th>Required documents</th><td>Recent electricity bill, Single-line electrical diagram, Equipment specifications and conformity certificates, Approved site layout, Building-law compliance declaration, EgyptERA construction permit application, Grid-impact study</td></tr>
+  
+  <tr><th>Citations</th><td>
+    
+      Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA) — <em>EgyptERA Circular No. 3 of 2023 (self-consumption solar generation)</em>, §core self-consumption rules (effective 2023-01-01)<br>
+    
+      Egyptian Electric Utility and Consumer Protection Regulatory Agency (EgyptERA) — <em>EgyptERA Circular No. 3 of 2023 (self-consumption permit and licence thresholds)</em>, §permit and licence thresholds (effective 2023-01-01)<br>
+    
+  </td></tr>
+  
+  <tr><td colspan="2" class="muted">Verification required: yes</td></tr>
+</table>
+
+<table>
+  <tr><th>EEAA environmental-impact assessment required</th><td class="warn">
+      requires_review · warning · confidence medium</td></tr>
+  <tr><td colspan="2">Industrial solar installations require EEAA environmental review before construction or operation; the residential exemption does not apply. Compact solar installations are typically handled as a Category B project (commonly reviewed within about 30 days), though the final classification depends on plant capacity, location, and environmental sensitivity.</td></tr>
+  <tr><th>Required documents</th><td>Environmental-impact assessment approval from EEAA</td></tr>
+  
+  <tr><th>Citations</th><td>
+    
+      Egyptian Environmental Affairs Agency (EEAA), under Environmental Law No. 4 of 1994 — <em>Environmental Law No. 4 of 1994 (executive regulations) and EEAA environmental-impact-assessment guidance</em>, §environmental-impact assessment for industrial solar (effective 1994-01-01)<br>
+    
+  </td></tr>
+  
+  <tr><td colspan="2" class="muted">Verification required: yes</td></tr>
+</table>
+
+
+<h2>Vendor candidates</h2>
+
+<table>
+  <tr><th>Name</th><th>Fit</th><th>Evidence</th><th>Status</th></tr>
+  
+  <tr>
+    <td>The Solar Company<br><span class="muted"><a href="https://tsc.solar">https://tsc.solar</a></span></td>
+    <td>Provides Egyptian solar EPC services, including on-grid and off-grid system design, installation, operation and maintenance, and energy management across residential, commercial, and industrial sectors.</td>
+    <td><a href="https://tsc.solar">The Solar Company</a><br></td>
+    <td>source_supported</td>
+  </tr>
+  
+</table>
+
+<p class="muted">Vendor leads require independent verification before use.</p>
+
+<h2>Sources, assumptions, and versions</h2>
+<table>
+  <tr><th>Code version</th><td><code>gadded-poc-0.1.0</code></td></tr>
+  <tr><th>Assumption set</th><td><code>gadded-poc-baseline-0.1.0</code></td></tr>
+  <tr><th>Load model</th><td><code>load-cluster-classifier-0.1.0</code></td></tr>
+  <tr><th>PV model</th><td><code>pvlib-pvwatts-0.1.0</code></td></tr>
+  <tr><th>Regulatory prompt</th><td><code>reg-explain-0.1.0</code></td></tr>
+  <tr><th>Vendor prompt</th><td><code>vendor-discovery-0.1.0</code></td></tr>
+</table>
+
+
+<h2>Warnings</h2>
+<ul><li class="warn">ML load profile: KMeans clustering + RandomForest classifier trained on a synthetic facility population (see load_ml.py); not measured interval data.</li><li class="warn">vendor search failed for query 'solar EPC company Egypt industrial rooftop 775 kW project reference': (APIStatusError) – Error code: 413 - {'error': {'message': 'Request Entity Too Large', 'type': 'invalid_request_error', 'code': 'request_too_large'}}</li><li class="warn">vendor search failed for query 'commercial solar installer Egypt self consumption rooftop': (APIStatusError) – Error code: 413 - {'error': {'message': 'Request Entity Too Large', 'type': 'invalid_request_error', 'code': 'request_too_large'}}</li></ul>
+
+
+<div class="disclaimer">This is a preliminary decision-support assessment. Verify regulatory, engineering, grid, vendor, and financing information with the responsible authorities and qualified professionals.</div>
+
+</body>
+</html>
