@@ -886,7 +886,7 @@ def get_weather():
 
 @st.cache_resource(show_spinner="Initializing load-profile ML models...")
 def get_load_ml_bundle():
-    return train_load_ml_model(seed=42, n_per_combo=15)
+    return train_load_ml_model(seed=42, n_per_combo=40)
 
 
 @st.cache_resource(show_spinner="Loading GIS spatial layers...")

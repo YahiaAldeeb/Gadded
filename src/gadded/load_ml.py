@@ -22,6 +22,7 @@ discovery of real hidden structure in measured factories.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -30,7 +31,14 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, adjusted_rand_score, silhouette_score
+from sklearn.metrics import (
+    accuracy_score,
+    adjusted_rand_score,
+    classification_report,
+    confusion_matrix,
+    precision_recall_fscore_support,
+    silhouette_score,
+)
 from sklearn.model_selection import train_test_split
 
 from gadded.contracts import AssessmentInput, Confidence, LoadPredictionResult
@@ -46,7 +54,16 @@ from gadded.load import (
 
 LOAD_ML_MODEL_VERSION = "load-cluster-classifier-0.1.0"
 _ARTIFACT_DIR = Path(__file__).resolve().parents[2] / "data" / "load_archetypes"
-
+FEATURE_NAMES = [
+    "Sector Food Processing",
+    "Sector Textiles",
+    "Shift Day Shift",
+    "Shift Two Shifts",
+    "Shift Continuous",
+    "Working Days/Week",
+    "Shift Start Hour",
+    "Shift End Hour",
+]
 
 @dataclass
 class SyntheticFacility:
@@ -202,6 +219,7 @@ def train_load_ml_model(
         test_shapes
     )  # test facilities assigned via train-fit geometry
 
+    # Cluster ID mapped to mean normalized 168-shape (used for inference).
     cluster_shapes = {
         int(c): train_shapes[train_labels == c].mean(axis=0) for c in range(k)
     }
@@ -210,30 +228,90 @@ def train_load_ml_model(
     test_X = np.array([_facility_features(f) for f in test])
 
     classifier = RandomForestClassifier(n_estimators=200, random_state=seed)
+    # Train the classifier to map assumptions (after encoding) 
+    # e.g., sector, shift pattern, working days, etc... to a cluster ID
     classifier.fit(train_X, train_labels)
     pred_labels = classifier.predict(test_X)
+    # How well can the classifier reproduce the cluster assignments that KMeans made using only facility metadata?
     classifier_accuracy = float(accuracy_score(test_labels, pred_labels))
 
+    precision, recall, f1, _ = precision_recall_fscore_support(test_labels, pred_labels, average="macro", zero_division=0)
+
+    conf_matrix = confusion_matrix(test_labels, pred_labels).tolist()
+
+    report = classification_report(test_labels, pred_labels, zero_division=0)
+
+    feature_importance = dict(
+        sorted(zip(FEATURE_NAMES, classifier.feature_importances_, strict=True), key=lambda x: x[1], reverse=True)
+    )
+
     # Baseline: majority train-cluster per (sector, shift) combo — a lookup, not a model.
-    combo_majority: dict[str, int] = {}
-    for combo in {f.combo_label for f in train}:
-        idx = [i for i, f in enumerate(train) if f.combo_label == combo]
-        vals, counts = np.unique(train_labels[idx], return_counts=True)
-        combo_majority[combo] = int(vals[np.argmax(counts)])
+    cluster_by_combo: defaultdict[str, list[int]] = defaultdict(list)
+
+    for facility, cluster in zip(train, train_labels, strict=True):
+        cluster_by_combo[facility.combo_label].append(cluster)
+
+    combo_majority = {combo: int(np.bincount(clusters).argmax()) for combo, clusters in cluster_by_combo.items()}
+
     baseline_pred = [combo_majority.get(f.combo_label, -1) for f in test]
     baseline_accuracy = float(accuracy_score(test_labels, baseline_pred))
 
+    # Did KMeans naturally rediscover the original archetypes?
     ari = float(adjusted_rand_score([f.combo_label for f in test], test_labels))
     sil = float(silhouette_score(train_shapes, train_labels))
+    print(
+    f"""\
+================ Load ML Training Summary ================
+
+Train facilities : {len(train)}
+Test facilities  : {len(test)}
+
+Chosen clusters (K)      : {k}
+
+Classifier
+----------
+Accuracy                 : {classifier_accuracy:.4f}
+Precision (macro)        : {precision:.4f}
+Recall (macro)           : {recall:.4f}
+F1-score (macro)         : {f1:.4f}
+
+Baseline lookup accuracy : {baseline_accuracy:.4f}
+
+Clustering
+----------
+Silhouette score         : {sil:.4f}
+Adjusted Rand Index      : {ari:.4f}
+
+Feature importance
+------------------
+    """)
+
+    for name, score in sorted(
+        feature_importance.items(),
+        key=lambda x: x[1],
+        reverse=True,
+    ):
+        print(f"{name:<28} {score:.4f}")
+
+    print("\nConfusion Matrix")
+    print(np.array(conf_matrix))
+
+    print("\nClassification Report")
+    print(report)
 
     metrics = {
         "chosen_k": k,
         "train_facility_count": len(train),
         "test_facility_count": len(test),
         "classifier_test_accuracy": classifier_accuracy,
+        "classifier_precision_macro": float(precision),
+        "classifier_recall_macro": float(recall),
+        "classifier_f1_macro": float(f1),
         "baseline_test_accuracy": baseline_accuracy,
         "silhouette_score_train": sil,
         "adjusted_rand_index_vs_combo_label": ari,
+        "feature_importance": feature_importance,
+        "confusion_matrix": conf_matrix,
         "seed": seed,
         "limitations": (
             "Trained entirely on a synthetic parametric population, not measured Egyptian "
