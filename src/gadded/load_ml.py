@@ -95,7 +95,7 @@ class LoadMlBundle:
 
 
 def generate_synthetic_facilities(
-    seed: int = 42, n_per_combo: int = 15
+    seed: int = 42, n_per_combo: int = 40
 ) -> list[SyntheticFacility]:
     """Build a labeled synthetic facility population from the archetype spec.
 
@@ -139,7 +139,7 @@ def generate_synthetic_facilities(
                     shift_start_hour=start,
                     shift_end_hour=end,
                     combo_label=combo,
-                    week_shape=normalized,
+                    week_shape=normalized, # 7 * 24 = (168,)
                 )
             )
     return facilities
@@ -200,8 +200,10 @@ def train_load_ml_model(
     seed: int = 42, n_per_combo: int = 15, test_size: float = 0.25
 ) -> LoadMlBundle:
     """Full reproducible training script: generate -> split -> cluster -> classify -> evaluate."""
+    # Unsupervised learning (clustering) -> KMeans, Supervised learning (classification) -> RandomForestClassifier
     facilities = generate_synthetic_facilities(seed=seed, n_per_combo=n_per_combo)
 
+    # train -> 180, test -> 60
     train, test = train_test_split(
         facilities,
         test_size=test_size,
@@ -209,17 +211,18 @@ def train_load_ml_model(
         stratify=[f.combo_label for f in facilities],
     )
 
+    # [0.1, 0.4, 0.2, 0.3] sum = 1
     train_shapes = np.array([f.week_shape for f in train])
     test_shapes = np.array([f.week_shape for f in test])
 
-    k = _choose_k(train_shapes, seed)
+    k = _choose_k(train_shapes, seed) # k = 6 no_of_clusters
     kmeans = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(train_shapes)
-    train_labels = kmeans.labels_
+    train_labels = kmeans.labels_ # belong to [0, 1, 2, 3, 4, 5] for k=6
     test_labels = kmeans.predict(
         test_shapes
     )  # test facilities assigned via train-fit geometry
 
-    # Cluster ID mapped to mean normalized 168-shape (used for inference).
+    # Cluster ID: facilities average week_shape mapped to mean normalized 168-shape (used for inference).
     cluster_shapes = {
         int(c): train_shapes[train_labels == c].mean(axis=0) for c in range(k)
     }
@@ -384,8 +387,9 @@ def predict_load_ml(
             )
         ]
     )
+     # belong to [0, 1, 2, 3, 4, 5] for k=6
     proba = bundle.classifier.predict_proba(features)[0]
-    cluster_id = int(bundle.classifier.classes_[np.argmax(proba)])
+    cluster_id = int(bundle.classifier.classes_[np.argmax(proba)]) # Cluster = 0
     max_proba = float(proba.max())
     confidence = confidence_label(max_proba)
 
@@ -400,8 +404,10 @@ def predict_load_ml(
         )
         return fallback
 
-    week_shape = bundle.cluster_shapes[cluster_id]
-    raw = tile_week_shape_to_index(week_shape, index)
+    cluster_week_shape = bundle.cluster_shapes[cluster_id] # [0.1, 0.4, 0.2, 0.3] sum = 1
+    # Tilting
+    raw = tile_week_shape_to_index(cluster_week_shape, index)
+    # Scaling to match the submitted monthly consumption
     scaled, monthly_kwh, recon_err, warnings = reconcile_to_monthly(
         raw, index, ai.factory.monthlyConsumptionKwh
     )
